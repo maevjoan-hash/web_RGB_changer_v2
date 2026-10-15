@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="bg">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Конфигуратор на мишка - Геймърска (FPS/Action)</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <canvas id="space-background"></canvas>
+
+    <main class="app glass-panel">
+      <header class="app-header">
+        <a href="homepage.html" class="back-button">
+          <svg viewBox="0 0 24 24" class="back-icon" aria-hidden="true">
+            <polyline points="15 18 9 12 15 6"></polyline>
+          </svg>
+          Назад
+        </a>
+      </header>
+
+      <div class="layout-switcher">
+        <button type="button" id="layout-switcher-btn" class="connected-devices-btn">
+          Видове мишки ▾
+        </button>
+        <div id="layout-options" class="layout-options">
+          <a href="mouse.html" class="layout-option">Стандартна (Офис) • 3–5 бутона</a>
+          <a href="mouse-gaming.html" class="layout-option active" aria-current="page">Геймърска (FPS/Action) • 6–9 бутона</a>
+        </div>
+      </div>
+
+      <section id="device-preview" class="device-preview mouse-preview" aria-label="Визуализация на геймърска мишка">
+        <div id="device-display-area" class="device-display-area mouse-display-area">
+          <div class="mouse-info">
+            <div class="mouse-info__item">
+              <span class="mouse-info__label">Категория:</span>
+              <span class="mouse-info__value">Геймърска (FPS/Action)</span>
+            </div>
+            <div class="mouse-info__item">
+              <span class="mouse-info__label">Брой бутони:</span>
+              <span class="mouse-info__value">6 – 9 бутона</span>
+            </div>
+            <div class="mouse-info__item">
+              <span class="mouse-info__label">Основно приложение:</span>
+              <span class="mouse-info__value">Състезателни игри и бързи макроси</span>
+            </div>
+          </div>
+
+          <div class="mouse-stage">
+            <svg class="mouse-svg mouse-svg--gaming" viewBox="0 0 340 440" role="group" aria-label="Геймърска FPS мишка с 9 бутона">
+              <path d="M 170 6 L 170 40" class="mouse-cable" aria-hidden="true" />
+              <path d="M 70 140 L 32 195 L 28 310 L 82 355 Z" class="mouse-thumb-rest" aria-hidden="true" />
+              <path d="M 85 42 L 150 32 L 190 32 L 255 42 L 272 150 L 258 345 L 210 398 L 130 398 L 72 345 L 68 150 Z" class="mouse-shell" aria-hidden="true" />
+              <path d="M 82 340 L 132 390 L 208 390 L 252 340" class="mouse-rgb-strip" aria-hidden="true" />
+
+              <g class="mouse-btn-group" data-btn="Fire" role="button" tabindex="0" aria-pressed="false" aria-label="Бърз Rapid-Fire бутон">
+                <polygon points="72,62 96,46 96,138 70,138" class="mouse-btn mouse-btn--accent" />
+                <text x="83" y="96" class="mouse-btn-label mouse-btn-label--small" aria-hidden="true">Fire</text>
+              </g>
+
+              <g class="mouse-btn-group" data-btn="LMB" role="button" tabindex="0" aria-pressed="false" aria-label="Ляв основен бутон">
+                <polygon points="100,44 156,36 156,172 72,172 72,144 100,144" class="mouse-btn" />
+                <text x="122" y="115" class="mouse-btn-label" aria-hidden="true">LMB</text>
+              </g>
+
+              <g class="mouse-btn-group" data-btn="RMB" role="button" tabindex="0" aria-pressed="false" aria-label="Десен основен бутон">
+                <polygon points="184,36 252,44 266,172 184,172" class="mouse-btn" />
+                <text x="222" y="115" class="mouse-btn-label" aria-hidden="true">RMB</text>
+              </g>
+
+              <rect x="152" y="55" width="36" height="190" rx="10" class="mouse-scroll-slot" aria-hidden="true" />
+
+              <g class="mouse-btn-group" data-btn="Scroll" role="button" tabindex="0" aria-pressed="false" aria-label="Геймърски скрол, среден бутон">
+                <rect x="157" y="64" width="26" height="64" rx="8" class="mouse-btn" />
+                <text x="170" y="96" class="mouse-btn-label mouse-btn-label--small" aria-hidden="true">Mid</text>
+              </g>
+
+              <g class="mouse-btn-group" data-btn="DPI+" role="button" tabindex="0" aria-pressed="false" aria-label="Увеличаване на чувствителността">
+                <rect x="156" y="140" width="28" height="38" rx="5" class="mouse-btn" />
+                <text x="170" y="160" class="mouse-btn-label mouse-btn-label--small" aria-hidden="true">DPI+</text>
+              </g>
+
+              <g class="mouse-btn-group" data-btn="DPI-" role="button" tabindex="0" aria-pressed="false" aria-label="Намаляване на чувствителността">
+                <rect x="156" y="186" width="28" height="38" rx="5" class="mouse-btn" />
+                <text x="170" y="206" class="mouse-btn-label mouse-btn-label--small" aria-hidden="true">DPI-</text>
+              </g>
+
+              <g class="mouse-btn-group" data-btn="M4" role="button" tabindex="0" aria-pressed="false" aria-label="Страничен макро бутон 1">
+                <polygon points="48,162 68,154 68,210 48,210" class="mouse-btn" />
+                <text x="58" y="185" class="mouse-btn-label mouse-btn-label--small" aria-hidden="true">M4</text>
+              </g>
+
+              <g class="mouse-btn-group" data-btn="M5" role="button" tabindex="0" aria-pressed="false" aria-label="Страничен макро бутон 2">
+                <polygon points="48,218 68,218 68,274 48,266" class="mouse-btn" />
+                <text x="58" y="245" class="mouse-btn-label mouse-btn-label--small" aria-hidden="true">M5</text>
+              </g>
+
+              <g class="mouse-btn-group" data-btn="Sniper" role="button" tabindex="0" aria-pressed="false" aria-label="Страничен бутон за прицелване и нисък DPI">
+                <polygon points="22,202 44,192 44,248 22,238" class="mouse-btn mouse-btn--accent" />
+                <text x="33" y="220" class="mouse-btn-label mouse-btn-label--tiny" aria-hidden="true">Aim</text>
+              </g>
+
+              <polygon points="170,295 190,325 170,345 150,325" class="mouse-gaming-logo" aria-hidden="true" />
+            </svg>
+          </div>
+        </div>
+      </section>
+
+      <section class="settings-menu" aria-label="Меню за настройки">
+        <p class="settings-menu__title">Меню за всички настройки</p>
+        <div class="settings-tabs" role="tablist">
+          <button type="button" class="settings-tab" data-tab="1">1</button>
+          <button type="button" class="settings-tab" data-tab="2">2</button>
+          <button type="button" class="settings-tab" data-tab="3">3</button>
+          <button type="button" class="settings-tab" data-tab="4">4</button>
+        </div>
+      </section>
+    </main>
+
+    <script src="script.js"></script>
+  </body>
+</html>

@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="bg">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Конфигуратор на мишка - Стандартна (Офис)</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <canvas id="space-background"></canvas>
+
+    <main class="app glass-panel">
+      <header class="app-header">
+        <a href="homepage.html" class="back-button">
+          <svg viewBox="0 0 24 24" class="back-icon" aria-hidden="true">
+            <polyline points="15 18 9 12 15 6"></polyline>
+          </svg>
+          Назад
+        </a>
+      </header>
+
+      <div class="layout-switcher">
+        <button type="button" id="layout-switcher-btn" class="connected-devices-btn">
+          Видове мишки ▾
+        </button>
+        <div id="layout-options" class="layout-options">
+          <a href="mouse.html" class="layout-option active" aria-current="page">Стандартна (Офис) • 3–5 бутона</a>
+          <a href="mouse-gaming.html" class="layout-option">Геймърска (FPS/Action) • 6–9 бутона</a>
+        </div>
+      </div>
+
+      <section id="device-preview" class="device-preview mouse-preview" aria-label="Визуализация на мишка">
+        <div id="device-display-area" class="device-display-area mouse-display-area">
+          <div class="mouse-info">
+            <div class="mouse-info__item">
+              <span class="mouse-info__label">Категория:</span>
+              <span class="mouse-info__value">Стандартна (Офис)</span>
+            </div>
+            <div class="mouse-info__item">
+              <span class="mouse-info__label">Брой бутони:</span>
+              <span class="mouse-info__value">3 – 5 бутона</span>
+            </div>
+            <div class="mouse-info__item">
+              <span class="mouse-info__label">Основно приложение:</span>
+              <span class="mouse-info__value">Ежедневна употреба, браузване и работа с документи</span>
+            </div>
+          </div>
+
+          <div class="mouse-stage">
+            <svg class="mouse-svg" viewBox="0 0 320 420" role="group" aria-label="Стандартна офис мишка">
+              <path d="M 160 10 Q 160 30 160 45" class="mouse-cable" aria-hidden="true" />
+              <rect x="65" y="40" width="190" height="340" rx="95" ry="95" class="mouse-shell" aria-hidden="true" />
+              <line x1="160" y1="185" x2="160" y2="375" class="mouse-seam" aria-hidden="true" />
+
+              <g class="mouse-btn-group" data-btn="LMB" role="button" tabindex="0" aria-pressed="false" aria-label="Ляв бутон">
+                <path d="M 73 175 L 73 130 A 87 87 0 0 1 155 48 L 155 175 Z" class="mouse-btn" />
+                <text x="114" y="125" class="mouse-btn-label" aria-hidden="true">LMB</text>
+              </g>
+
+              <g class="mouse-btn-group" data-btn="RMB" role="button" tabindex="0" aria-pressed="false" aria-label="Десен бутон">
+                <path d="M 165 48 A 87 87 0 0 1 247 130 L 247 175 L 165 175 Z" class="mouse-btn" />
+                <text x="206" y="125" class="mouse-btn-label" aria-hidden="true">RMB</text>
+              </g>
+
+              <rect x="142" y="70" width="36" height="82" rx="18" class="mouse-scroll-slot" aria-hidden="true" />
+
+              <g class="mouse-btn-group" data-btn="Scroll" role="button" tabindex="0" aria-pressed="false" aria-label="Скрол колелце, среден бутон">
+                <rect x="147" y="78" width="26" height="66" rx="13" class="mouse-btn mouse-btn--scroll" />
+                <text x="160" y="115" class="mouse-btn-label mouse-btn-label--small" aria-hidden="true">Mid</text>
+              </g>
+
+              <g class="mouse-btn-group" data-btn="M4" role="button" tabindex="0" aria-pressed="false" aria-label="Страничен бутон Напред">
+                <rect x="46" y="165" width="22" height="52" rx="8" class="mouse-btn" />
+                <text x="57" y="195" class="mouse-btn-label mouse-btn-label--small" aria-hidden="true">M4</text>
+              </g>
+
+              <g class="mouse-btn-group" data-btn="M5" role="button" tabindex="0" aria-pressed="false" aria-label="Страничен бутон Назад">
+                <rect x="46" y="225" width="22" height="52" rx="8" class="mouse-btn" />
+                <text x="57" y="255" class="mouse-btn-label mouse-btn-label--small" aria-hidden="true">M5</text>
+              </g>
+
+              <circle cx="160" cy="310" r="14" class="mouse-logo-ring" aria-hidden="true" />
+            </svg>
+          </div>
+        </div>
+      </section>
+
+      <section class="settings-menu" aria-label="Меню за настройки">
+        <p class="settings-menu__title">Меню за всички настройки</p>
+        <div class="settings-tabs" role="tablist">
+          <button type="button" class="settings-tab" data-tab="1">1</button>
+          <button type="button" class="settings-tab" data-tab="2">2</button>
+          <button type="button" class="settings-tab" data-tab="3">3</button>
+          <button type="button" class="settings-tab" data-tab="4">4</button>
+        </div>
+      </section>
+    </main>
+
+    <script src="script.js"></script>
+  </body>
+</html>
