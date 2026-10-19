@@ -1070,3 +1070,38 @@ button.layout-option {
   font-weight: bold;
   color: #b8d4f0;
 }
+
+/* --- ЗАПИС В МИШКАТА --- */
+.device-details,
+.device-block {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.device-summary {
+  font-weight: bold;
+  color: #ffd98a;
+}
+
+.device-log {
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.device-log:empty {
+  display: none;
+}
+
+.device-log--error {
+  color: #ffc9c9;
+}
+
+.settings-panel.is-busy {
+  cursor: progress;
+}
+
+.settings-panel.is-busy .panel-btn {
+  pointer-events: none;
+  opacity: 0.6;
+}

@@ -725,5 +725,21 @@
     addRecordedCombo(combo);
   }, true);
 
+  // Функциите на активния профил за други скриптове (logitech.js ги записва в мишката).
+  // Бързите команди се подават като обикновени комбинации.
+  window.RgbChanger = window.RgbChanger || {};
+  window.RgbChanger.getButtonFunctions = () => targets.map((target) => {
+    const saved = profileBindings()[target.id];
+    const binding = saved?.type === 'shortcut' ? { type: 'combo', value: SHORTCUTS[saved.value][1] } : saved;
+    return {
+      id: target.id,
+      name: target.name,
+      binding: binding || null,
+      description: saved ? describe(saved) : 'Оригинална функция',
+      defaultBinding: defaultBinding(target)
+    };
+  });
+  window.RgbChanger.activeProfile = () => Number(activeProfile());
+
   render();
 })();
