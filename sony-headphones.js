@@ -139,7 +139,7 @@ class SonyHeadphones {
     const task = () => new Promise((resolve, reject) => {
       const timer = setTimeout(() => {
         this.ackWaiter = null;
-        reject(new Error('Слушалките не потвърдиха командата.'));
+        reject(new Error(I18n.t('Слушалките не потвърдиха командата.')));
       }, 1500);
       this.ackWaiter = () => {
         clearTimeout(timer);
@@ -166,7 +166,7 @@ class SonyHeadphones {
       this.replyWaiters.push(waiter);
       setTimeout(() => {
         this.replyWaiters = this.replyWaiters.filter((other) => other !== waiter);
-        reject(new Error('Слушалките не отговориха.'));
+        reject(new Error(I18n.t('Слушалките не отговориха.')));
       }, timeout);
     });
     reply.catch(() => {});
@@ -177,20 +177,22 @@ class SonyHeadphones {
 // --- СТРАНИЦАТА ЗА СЛУШАЛКИТЕ ---
 
 (() => {
+  const { t } = I18n;
+
   // Готовите настройки на еквалайзера (кодове от Gadgetbridge)
   const EQ_PRESETS = [
-    { id: 0x00, label: 'Изключен' },
-    { id: 0x10, label: 'Ярък' },
-    { id: 0x11, label: 'Енергичен' },
-    { id: 0x12, label: 'Мек' },
-    { id: 0x13, label: 'Спокоен' },
-    { id: 0x14, label: 'Вокали' },
-    { id: 0x15, label: 'Усилени високи' },
-    { id: 0x16, label: 'Усилен бас' },
-    { id: 0x17, label: 'Реч' },
-    { id: 0xa0, label: 'Ръчна' },
-    { id: 0xa1, label: 'Потребителска 1' },
-    { id: 0xa2, label: 'Потребителска 2' }
+    { id: 0x00, label: t('Изключен') },
+    { id: 0x10, label: t('Ярък') },
+    { id: 0x11, label: t('Енергичен') },
+    { id: 0x12, label: t('Мек') },
+    { id: 0x13, label: t('Спокоен') },
+    { id: 0x14, label: t('Вокали') },
+    { id: 0x15, label: t('Усилени високи') },
+    { id: 0x16, label: t('Усилен бас') },
+    { id: 0x17, label: t('Реч') },
+    { id: 0xa0, label: t('Ръчна') },
+    { id: 0xa1, label: t('Потребителска 1') },
+    { id: 0xa2, label: t('Потребителска 2') }
   ];
 
   // --- ИНТЕРФЕЙС ---
@@ -201,37 +203,37 @@ class SonyHeadphones {
 
   const EQ_BANDS = ['400', '1k', '2.5k', '6.3k', '16k'];
   const MODES = [
-    { id: 'nc', label: 'Шумопотискане' },
-    { id: 'ambient', label: 'Околен звук' },
-    { id: 'off', label: 'Изключено' }
+    { id: 'nc', label: t('Шумопотискане') },
+    { id: 'ambient', label: t('Околен звук') },
+    { id: 'off', label: t('Изключено') }
   ];
 
   const [soundPanels, devicePanels] = [...columns].map((column) => column.querySelector('.settings-panels'));
   soundPanels.innerHTML = `
     <div class="settings-panel" data-panel="1">
       <fieldset class="effect-options hp-modes hp-control">
-        <legend class="visually-hidden">Режим</legend>
+        <legend class="visually-hidden">${t('Режим')}</legend>
         ${MODES.map(({ id, label }) => `<label class="effect-option"><input type="radio" name="hp-mode" value="${id}" /><span>${label}</span></label>`).join('')}
       </fieldset>
       <label class="range-field hp-control">
-        <span class="range-field__label">Ниво на околния звук <output id="hp-level-value"></output></span>
+        <span class="range-field__label">${t('Ниво на околния звук')} <output id="hp-level-value"></output></span>
         <input type="range" id="hp-level" min="1" max="20" step="1" />
       </label>
       <label class="hp-toggle hp-control">
         <input type="checkbox" id="hp-voice" />
-        <span>Фокус върху гласа<small>Пропуска говор, заглушава останалия околен шум</small></span>
+        <span>${t('Фокус върху гласа')}<small>${t('Пропуска говор, заглушава останалия околен шум')}</small></span>
       </label>
     </div>
     <div class="settings-panel" data-panel="2">
       <label class="field hp-control">
-        <span class="field__label">Готова настройка</span>
+        <span class="field__label">${t('Готова настройка')}</span>
         <select class="field__select" id="hp-eq-preset"></select>
       </label>
       <label class="range-field hp-control">
         <span class="range-field__label">Clear Bass <output id="hp-bass-value"></output></span>
         <input type="range" id="hp-bass" min="-10" max="10" step="1" />
       </label>
-      <div class="hp-eq hp-control" role="group" aria-label="Ленти на еквалайзера">
+      <div class="hp-eq hp-control" role="group" aria-label="${t('Ленти на еквалайзера')}">
         ${EQ_BANDS.map((band, index) => `
           <label class="hp-eq__band">
             <output id="hp-band-value-${index}"></output>
@@ -239,25 +241,25 @@ class SonyHeadphones {
             <span>${band}</span>
           </label>`).join('')}
       </div>
-      <p class="settings-hint">Промяна на лентите превключва на „Ръчна“ настройка.</p>
+      <p class="settings-hint">${t('Промяна на лентите превключва на „Ръчна“ настройка.')}</p>
     </div>
   `;
   devicePanels.innerHTML = `
     <div class="settings-panel" data-panel="3">
       <label class="hp-toggle hp-control">
         <input type="checkbox" id="hp-dsee" />
-        <span>DSEE Extreme<small>Възстановява детайли в компресирана музика</small></span>
+        <span>DSEE Extreme<small>${t('Възстановява детайли в компресирана музика')}</small></span>
       </label>
       <label class="hp-toggle hp-control">
         <input type="checkbox" id="hp-stc" />
-        <span>Speak-to-Chat<small>Спира музиката, когато заговориш</small></span>
+        <span>Speak-to-Chat<small>${t('Спира музиката, когато заговориш')}</small></span>
       </label>
     </div>
     <div class="settings-panel" data-panel="4">
       <dl class="hp-info">
-        <dt>Модел</dt><dd id="hp-info-model">–</dd>
-        <dt>Фърмуер</dt><dd id="hp-info-firmware">–</dd>
-        <dt>Батерия</dt><dd id="hp-info-battery">–</dd>
+        <dt>${t('Модел')}</dt><dd id="hp-info-model">–</dd>
+        <dt>${t('Фърмуер')}</dt><dd id="hp-info-firmware">–</dd>
+        <dt>${t('Батерия')}</dt><dd id="hp-info-battery">–</dd>
       </dl>
     </div>
   `;
@@ -311,9 +313,10 @@ class SonyHeadphones {
     svg.dataset.mode = state.connected ? state.mode || 'unknown' : 'unknown';
     const modeLabel = MODES.find(({ id }) => id === state.mode)?.label;
     $('#hp-status-mode').textContent = !state.connected
-      ? 'Не са свързани'
-      : state.mode === 'ambient' ? `${modeLabel} · ${state.ambientLevel}` : modeLabel || 'Свързани';
-    const batteryText = state.battery ? `Батерия ${state.battery.level}%${state.battery.charging ? ' · зарежда' : ''}` : '';
+      ? t('Не са свързани')
+      : state.mode === 'ambient' ? `${modeLabel} · ${state.ambientLevel}` : modeLabel || t('Свързани');
+    const batteryText = !state.battery ? ''
+      : t(state.battery.charging ? 'Батерия {level}% · зарежда' : 'Батерия {level}%', { level: state.battery.level });
     $('#hp-status-battery').textContent = state.connected ? batteryText : '';
 
     modeInputs.forEach((input) => {
@@ -350,24 +353,24 @@ class SonyHeadphones {
   bar.innerHTML = `
     <div class="device-bar">
       <div class="panel-actions save-bar__row">
-        <button type="button" class="panel-btn panel-btn--primary" data-hp-action="connect">Свържи слушалките</button>
+        <button type="button" class="panel-btn panel-btn--primary" data-hp-action="connect">${t('Свържи слушалките')}</button>
         <span class="save-bar__group" data-connected hidden>
-          <button type="button" class="panel-btn" data-hp-action="refresh">Обнови</button>
+          <button type="button" class="panel-btn" data-hp-action="refresh">${t('Обнови')}</button>
           <details class="action-menu">
-            <summary class="panel-btn">Още ▾</summary>
+            <summary class="panel-btn">${t('Още')} ▾</summary>
             <div class="action-menu__list">
-              <button type="button" class="panel-btn" data-hp-action="copy-diagnostics">Техническа информация</button>
+              <button type="button" class="panel-btn" data-hp-action="copy-diagnostics">${t('Техническа информация')}</button>
               <hr />
-              <button type="button" class="panel-btn panel-btn--danger" data-hp-action="disconnect">Прекъсни</button>
+              <button type="button" class="panel-btn panel-btn--danger" data-hp-action="disconnect">${t('Прекъсни')}</button>
             </div>
           </details>
         </span>
       </div>
       <p class="device-log" id="device-log" role="status"></p>
       <div class="device-help" id="hp-help" hidden>
-        <p>Слушалките трябва да са сдвоени с компютъра по Bluetooth. Приложението Sony Headphones Connect на
-          телефона заема същия канал – затвори го или изключи Bluetooth на телефона и опитай пак.
-          Нужен е Chrome или Edge 117+ на компютър.</p>
+        <p>${t('Слушалките трябва да са сдвоени с компютъра по Bluetooth.')}
+          ${t('Приложението Sony Headphones Connect на телефона заема същия канал – затвори го или изключи Bluetooth на телефона и опитай пак.')}
+          ${t('Нужен е Chrome или Edge 117+ на компютър.')}</p>
       </div>
     </div>
   `;
@@ -386,7 +389,7 @@ class SonyHeadphones {
   const setLog = (message, isError = false) => {
     log.textContent = message;
     log.classList.toggle('device-log--error', isError);
-    events.push(`${new Date().toLocaleTimeString('bg-BG')}${isError ? ' [грешка]' : ''} ${message}`);
+    events.push(`${new Date().toLocaleTimeString(I18n.locale)}${isError ? ` [${t('грешка')}]` : ''} ${message}`);
     if (events.length > 30) events.shift();
   };
   const hex = (bytes) => Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join(' ');
@@ -417,7 +420,7 @@ class SonyHeadphones {
         state.bands = [...payload.slice(5, 10)].map((value) => value - 10);
       }
       if (![...presetSelect.options].some((option) => Number(option.value) === state.eqPreset)) {
-        presetSelect.add(new Option(`Настройка 0x${state.eqPreset.toString(16)}`, state.eqPreset));
+        presetSelect.add(new Option(t('Настройка {code}', { code: `0x${state.eqPreset.toString(16)}` }), state.eqPreset));
       }
     } else if ((code === 0xe7 || code === 0xe9) && subtype === 0x01) {
       state.dsee = Boolean(payload[2]);
@@ -455,14 +458,14 @@ class SonyHeadphones {
 
   const connectTo = async (port, automatic) => {
     const service = port.getInfo().bluetoothServiceClassId;
-    if (!automatic) setLog('Свързвам се със слушалките…');
+    if (!automatic) setLog(t('Свързвам се със слушалките…'));
     headphones = new SonyHeadphones(port);
     headphones.onMessage = onMessage;
     headphones.onClose = () => {
       clearInterval(batteryTimer);
       headphones = null;
       showConnected(false);
-      setLog('Връзката със слушалките прекъсна.', true);
+      setLog(t('Връзката със слушалките прекъсна.'), true);
     };
     await headphones.open();
 
@@ -471,7 +474,7 @@ class SonyHeadphones {
     diagnostics = { service, init: hex(init), userAgent: navigator.userAgent };
     if (init.length < 8) {
       await disconnect(false);
-      throw new Error('Тези слушалки ползват по-стара версия на протокола на Sony, която страницата още не поддържа.');
+      throw new Error(t('Тези слушалки ползват по-стара версия на протокола на Sony, която страницата още не поддържа.'));
     }
 
     state.model = 'Sony WH-1000XM5';
@@ -484,13 +487,13 @@ class SonyHeadphones {
     }, 60000);
     setAuto(true);
     help.hidden = true;
-    setLog(automatic ? 'Слушалките са свързани автоматично.' : 'Слушалките са свързани.');
+    setLog(automatic ? t('Слушалките са свързани автоматично.') : t('Слушалките са свързани.'));
   };
 
   const connect = async () => {
     if (!navigator.serial) {
       help.hidden = false;
-      throw new Error('Браузърът не поддържа Web Serial. Използвай Chrome или Edge на компютър.');
+      throw new Error(t('Браузърът не поддържа Web Serial. Използвай Chrome или Edge на компютър.'));
     }
     let port;
     try {
@@ -501,7 +504,7 @@ class SonyHeadphones {
     } catch (error) {
       if (error.name === 'NotFoundError') {
         help.hidden = false;
-        setLog('Не са избрани слушалки. Ако не са в списъка, сдвои ги първо с компютъра по Bluetooth.');
+        setLog(t('Не са избрани слушалки. Ако не са в списъка, сдвои ги първо с компютъра по Bluetooth.'));
         return;
       }
       throw error;
@@ -543,7 +546,7 @@ class SonyHeadphones {
     showConnected(false);
     if (manual) {
       setAuto(false);
-      setLog('Връзката със слушалките е прекъсната.');
+      setLog(t('Връзката със слушалките е прекъсната.'));
     }
   };
 
@@ -625,11 +628,11 @@ class SonyHeadphones {
     disconnect,
     refresh: async () => {
       await readAll();
-      setLog('Състоянието е обновено от слушалките.');
+      setLog(t('Състоянието е обновено от слушалките.'));
     },
     'copy-diagnostics': async () => {
       await navigator.clipboard.writeText(JSON.stringify({ ...diagnostics, state, events }, null, 2));
-      setLog('Техническата информация е копирана.');
+      setLog(t('Техническата информация е копирана.'));
     }
   };
   bar.addEventListener('click', async (event) => {
