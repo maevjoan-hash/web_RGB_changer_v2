@@ -42,7 +42,17 @@ const LogitechHidpp = (() => {
     }
 
     async open() {
-      if (!this.hid.opened) await this.hid.open();
+      if (!this.hid.opened) {
+        try {
+          await this.hid.open();
+        } catch (cause) {
+          // Най-често: в Linux няма права за /dev/hidraw*, или друга програма държи устройството
+          const error = new Error('Системата не позволи на браузъра да отвори мишката.');
+          error.code = 'open-failed';
+          error.cause = cause;
+          throw error;
+        }
+      }
       this.hid.addEventListener('inputreport', this.onReport);
     }
 
@@ -479,6 +489,22 @@ const LogitechButtons = (() => {
     </div>
 
     <p class="device-log" id="device-log" role="status"></p>
+
+    <div class="device-help" id="device-help" hidden>
+      <div data-help-os="linux">
+        <p>В Linux браузърът няма достъп до HID устройствата, докато не му се разреши. Изпълни веднъж в терминала:</p>
+        <pre class="device-help__code"><code id="device-help-commands"></code></pre>
+        <div class="panel-actions">
+          <button type="button" class="panel-btn" data-device-action="copy-commands">Копирай командите</button>
+        </div>
+        <p>След това изключи и включи мишката (или я свържи отново по Bluetooth) и натисни „Свържи мишката“ пак.
+          Ако браузърът е инсталиран като Snap или Flatpak, той може да няма достъп до HID устройства изобщо –
+          тогава използвай версията от официалния сайт или пакет (.deb/.rpm).</p>
+      </div>
+      <div data-help-os="other">
+        <p>Затвори Logitech G HUB и другите програми за мишката, рестартирай браузъра и опитай пак.</p>
+      </div>
+    </div>
   `;
   panels.append(panel);
 
@@ -492,6 +518,22 @@ const LogitechButtons = (() => {
   const planTitle = panel.querySelector('#device-plan-title');
   const planList = panel.querySelector('#device-plan');
   const log = panel.querySelector('#device-log');
+  const help = panel.querySelector('#device-help');
+  const isLinux = /Linux/i.test(navigator.userAgent) && !/Android/i.test(navigator.userAgent);
+
+  // Същото правило като linux/42-logitech-webhid.rules в проекта
+  const LINUX_COMMANDS = [
+    "sudo tee /etc/udev/rules.d/42-logitech-webhid.rules > /dev/null << 'EOF'",
+    'SUBSYSTEM=="hidraw", ATTRS{idVendor}=="046d", TAG+="uaccess"',
+    'SUBSYSTEM=="hidraw", KERNELS=="0005:046D:*", TAG+="uaccess"',
+    'EOF',
+    'sudo udevadm control --reload-rules && sudo udevadm trigger'
+  ].join('\n');
+
+  panel.querySelector('#device-help-commands').textContent = LINUX_COMMANDS;
+  panel.querySelectorAll('[data-help-os]').forEach((block) => {
+    block.hidden = (block.dataset.helpOs === 'linux') !== isLinux;
+  });
   const connectButton = panel.querySelector('[data-device-action="connect"]');
   const disconnectButton = panel.querySelector('[data-device-action="disconnect"]');
 
@@ -585,6 +627,7 @@ const LogitechButtons = (() => {
     const device = await LogitechHidpp.requestDevice();
     if (!device) return;
     mouse = device;
+    help.hidden = true;
 
     setLog('Чета информацията от мишката…');
     const name = await mouse.readName().catch(() => 'Logitech мишка');
@@ -693,8 +736,9 @@ const LogitechButtons = (() => {
     try {
       await action();
     } catch (error) {
-      console.error(error);
+      console.error(error, error.cause);
       setLog(error.message || String(error), true);
+      if (error.code === 'open-failed') help.hidden = false;
     } finally {
       busy = false;
       panel.classList.remove('is-busy');
@@ -703,6 +747,10 @@ const LogitechButtons = (() => {
 
   const actions = {
     connect: run(connect),
+    'copy-commands': run(async () => {
+      await navigator.clipboard.writeText(LINUX_COMMANDS);
+      setLog('Командите са копирани. Постави ги в терминала.');
+    }),
     disconnect: run(disconnect),
     'apply-dpi': run(applyDpi),
     write: run(() => writeProfile()),
