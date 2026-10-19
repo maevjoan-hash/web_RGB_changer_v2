@@ -470,9 +470,17 @@ button.layout-option {
 }
 
 .mouse-thumb-rest {
-  fill: #272b33;
-  stroke: #000000;
+  fill: #241f36;
+  stroke: #0b0914;
+  stroke-width: 2;
+}
+
+.mouse-accent {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.1);
   stroke-width: 3;
+  stroke-linecap: round;
+  pointer-events: none;
 }
 
 .mouse-btn--accent {
