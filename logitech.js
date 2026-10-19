@@ -224,6 +224,16 @@ const LogitechHidpp = (() => {
       await this.call(FEATURES.ONBOARD_PROFILES, 0x10, [mode]);
     }
 
+    // Текущ профил = номер на сектора му. Повторният избор кара мишката да го прочете наново от паметта.
+    async readCurrentProfile() {
+      const reply = await this.call(FEATURES.ONBOARD_PROFILES, 0x40);
+      return (reply[0] << 8) | reply[1];
+    }
+
+    async setCurrentProfile(sector) {
+      await this.call(FEATURES.ONBOARD_PROFILES, 0x30, [sector >> 8, sector & 0xff]);
+    }
+
     async readSector(sector, size) {
       const bytes = new Uint8Array(size);
       for (let offset = 0; offset < size; offset += 16) {
@@ -464,8 +474,17 @@ const LogitechButtons = (() => {
       return used.length > 0 && used.every((value) => validDpi.has(value)) && factory[layout.defaultIndexByte] < 5;
     });
 
-    return { buttons, dpi: known || scanDpiLayout(factory, validDpi, buttons ?? 64) };
+    // Y се записва само ако фабричният профил го ползва (Y = X). G309 (формат 6) държи Y = 0.
+    const dpi = known ? { ...known, hasY: known.hasY && yMatchesX(factory, known) } : scanDpiLayout(factory, validDpi, buttons ?? 64);
+    return { buttons, dpi };
   };
+
+  function yMatchesX(bytes, { offset, stride }) {
+    const used = readDpiStages(bytes, { offset, stride }).map((value, slot) => [value, slot]).filter(([value]) => !isUnusedDpi(value));
+    return used.length > 0 && used.every(([value, slot]) => (
+      (bytes[offset + slot * stride + 2] | (bytes[offset + slot * stride + 3] << 8)) === value
+    ));
+  }
 
   const isUnusedDpi = (value) => value === 0 || value === 0xffff;
 
@@ -759,8 +778,13 @@ const LogitechButtons = (() => {
     const userDirectory = LogitechHidpp.parseDirectory(userSector);
     if (romDirectory.length === 0) throw new Error('Не са намерени фабрични профили в мишката.');
 
+    // Работи се с профила, който мишката ползва в момента, ако е потребителски
+    const currentProfile = await mouse.readCurrentProfile().catch(() => null);
+    diagnostics.currentProfile = currentProfile === null ? 'неизвестен' : `0x${currentProfile.toString(16).padStart(4, '0')}`;
+
     const factory = await mouse.readSector(romDirectory[0].sector, info.sectorSize);
-    const userEntry = userDirectory.find((entry) => entry.enabled) || userDirectory[0];
+    const userEntry = userDirectory.find((entry) => entry.enabled && entry.sector === currentProfile) ||
+      userDirectory.find((entry) => entry.enabled) || userDirectory[0];
     const profile = userEntry ? await mouse.readSector(userEntry.sector, info.sectorSize) : factory.slice();
     diagnostics.factoryProfile = hex(factory);
     diagnostics.userProfile = userEntry ? hex(profile) : null;
@@ -915,7 +939,7 @@ const LogitechButtons = (() => {
     const stages = writeDpi ? readStageInputs() : null;
     const chosenStage = selectedStage();
     if (writeDpi) {
-      // 5 нива (little-endian); при подредба с Y се записва и Y, а LOD остава какъвто е
+      // 5 нива (little-endian). Y = X само ако мишката ползва Y; иначе Y остава фабричното (0). LOD не се пипа.
       const { offset, stride, hasY, defaultIndexByte } = layout.dpi;
       stages.forEach((value, slot) => {
         const at = offset + slot * stride;
@@ -924,6 +948,9 @@ const LogitechButtons = (() => {
         if (hasY) {
           profile[at + 2] = value & 0xff;
           profile[at + 3] = value >> 8;
+        } else if (stride >= 4) {
+          profile[at + 2] = factory[at + 2];
+          profile[at + 3] = factory[at + 3];
         }
       });
       if (defaultIndexByte !== null) profile[defaultIndexByte] = chosenStage;
@@ -946,6 +973,10 @@ const LogitechButtons = (() => {
     }
 
     await mouse.setMode(MODE_ONBOARD);
+    // Без повторен избор мишката може да продължи с профила, зареден преди записа
+    await mouse.setCurrentProfile(sector).catch((error) => {
+      diagnostics.setCurrentProfileError = error.message;
+    });
     if (writeDpi) await mouse.setDpi(stages[chosenStage], dpiCaps).catch(() => {});
     await loadOnboard();
     if (dpiCaps) await showCurrentDpi();
