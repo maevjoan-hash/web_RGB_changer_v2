@@ -4,26 +4,37 @@ if (canvas) {
   const ctx = canvas.getContext('2d');
   let width, height;
 
-  function resize() {
-    width = canvas.width = window.innerWidth;
-    height = canvas.height = window.innerHeight;
-  }
-
-  window.addEventListener('resize', resize);
-  resize();
-
   const stars = [];
   const numStars = 150;
 
   for (let i = 0; i < numStars; i++) {
     stars.push({
-      x: Math.random() * width,
-      y: Math.random() * height,
+      x: Math.random() * window.innerWidth,
+      y: Math.random() * window.innerHeight,
       radius: Math.random() * 1.5,
       speed: Math.random() * 0.5 + 0.1,
       opacity: Math.random()
     });
   }
+
+  function resize() {
+    const oldWidth = width;
+    const oldHeight = height;
+
+    width = canvas.width = window.innerWidth;
+    height = canvas.height = window.innerHeight;
+
+    // Разпределяме звездите пропорционално, за да покриват целия нов размер
+    if (oldWidth && oldHeight) {
+      stars.forEach((star) => {
+        star.x = (star.x / oldWidth) * width;
+        star.y = (star.y / oldHeight) * height;
+      });
+    }
+  }
+
+  window.addEventListener('resize', resize);
+  resize();
 
   function drawStars() {
     ctx.clearRect(0, 0, width, height);
@@ -101,12 +112,42 @@ document.querySelectorAll('.mouse-btn-group').forEach((mouseButton) => {
 });
 
 if (connectedDevicesBtn) {
+  const deviceStatus = document.createElement('p');
+  deviceStatus.className = 'device-status';
+  deviceStatus.setAttribute('role', 'status');
+  deviceStatus.hidden = true;
+  connectedDevicesBtn.after(deviceStatus);
+
+  const showStatus = (message, isError = false) => {
+    deviceStatus.textContent = message;
+    deviceStatus.classList.toggle('device-status--error', isError);
+    deviceStatus.hidden = false;
+  };
+
   connectedDevicesBtn.addEventListener('click', async () => {
+    if (!navigator.hid) {
+      showStatus('Браузърът не поддържа WebHID. Използвай Chrome или Edge.', true);
+      return;
+    }
+
+    if (!window.isSecureContext) {
+      showStatus('WebHID работи само през https:// или http://localhost.', true);
+      return;
+    }
+
     try {
       const devices = await navigator.hid.requestDevice({ filters: [] });
-      console.log(devices);
+
+      if (devices.length === 0) {
+        showStatus('Не е избрано устройство.');
+        return;
+      }
+
+      const names = devices.map((device) => device.productName || 'Неизвестно устройство');
+      showStatus(`Свързани устройства: ${[...new Set(names)].join(', ')}`);
     } catch (error) {
       console.error(error);
+      showStatus('Възникна грешка при търсенето на устройства.', true);
     }
   });
 }
