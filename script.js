@@ -111,7 +111,7 @@ if (connectedDevicesBtn) {
   deviceStatus.className = 'device-status';
   deviceStatus.setAttribute('role', 'status');
   deviceStatus.hidden = true;
-  connectedDevicesBtn.after(deviceStatus);
+  (connectedDevicesBtn.closest('.app-header') || connectedDevicesBtn).after(deviceStatus);
 
   const showStatus = (message, isError = false) => {
     deviceStatus.textContent = message;
