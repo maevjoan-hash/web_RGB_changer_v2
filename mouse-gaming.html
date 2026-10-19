@@ -11,7 +11,7 @@
 
     <main class="app glass-panel">
       <header class="app-header">
-        <a href="homepage.html" class="back-button">
+        <a href="index.html" class="back-button">
           <svg viewBox="0 0 24 24" class="back-icon" aria-hidden="true">
             <polyline points="15 18 9 12 15 6"></polyline>
           </svg>
@@ -20,7 +20,7 @@
       </header>
 
       <div class="layout-switcher">
-        <button type="button" id="layout-switcher-btn" class="connected-devices-btn">
+        <button type="button" class="connected-devices-btn layout-switcher__btn">
           Видове мишки ▾
         </button>
         <div id="layout-options" class="layout-options">
@@ -109,14 +109,15 @@
       <section class="settings-menu" aria-label="Меню за настройки">
         <p class="settings-menu__title">Меню за всички настройки</p>
         <div class="settings-tabs" role="tablist">
-          <button type="button" class="settings-tab" data-tab="1">1</button>
-          <button type="button" class="settings-tab" data-tab="2">2</button>
-          <button type="button" class="settings-tab" data-tab="3">3</button>
-          <button type="button" class="settings-tab" data-tab="4">4</button>
+          <button type="button" class="settings-tab" data-tab="1">Цвят</button>
+          <button type="button" class="settings-tab" data-tab="2">Ефекти</button>
+          <button type="button" class="settings-tab" data-tab="3">Яркост и скорост</button>
+          <button type="button" class="settings-tab" data-tab="4">Профили</button>
         </div>
       </section>
     </main>
 
     <script src="script.js"></script>
+    <script src="rgb.js"></script>
   </body>
 </html>
