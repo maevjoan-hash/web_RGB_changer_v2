@@ -370,47 +370,12 @@ button.layout-option {
   overflow: visible;
 }
 
-.mouse-info {
-  width: 100%;
-  max-width: 780px;
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 14px 18px;
-  background: rgba(30, 15, 50, 0.75);
-  border: 1px solid rgba(255, 255, 255, 0.22);
-  border-radius: 10px;
-  color: #ffffff;
-}
-
-.mouse-info__item {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  text-align: left;
-}
-
-.mouse-info__label {
-  font-size: 0.75rem;
-  text-transform: uppercase;
-  letter-spacing: 0;
-  color: #b8d4f0;
-  font-weight: bold;
-}
-
-.mouse-info__value {
-  font-size: 0.95rem;
-  font-weight: bold;
-  color: #ffffff;
-}
-
 .mouse-stage {
   padding: 20px 36px;
-  background: #2a2e35;
-  border: 2px solid #000000;
-  border-radius: 16px;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 10px 24px rgba(0, 0, 0, 0.5);
+  background: radial-gradient(circle at 50% 40%, #2a2142 0%, #15112a 70%);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 18px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 18px 40px rgba(0, 0, 0, 0.5);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -430,8 +395,8 @@ button.layout-option {
 }
 
 .mouse-shell {
-  fill: #383d47;
-  stroke: #000000;
+  fill: #2f2944;
+  stroke: #0b0914;
   stroke-width: 3;
   filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.45));
 }
@@ -493,10 +458,6 @@ button.layout-option {
 @media (max-width: 640px) {
   .device-display-area {
     padding: 16px 0;
-  }
-
-  .mouse-info {
-    flex-direction: column;
   }
 
   .mouse-stage {
@@ -1166,4 +1127,19 @@ button.layout-option {
 
 .dpi-stage input[type='radio'] {
   accent-color: #ffd98a;
+}
+
+/* Офис мишка: ергономична форма с колелце с ръбчета */
+.mouse-seam--palm {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.08);
+  stroke-width: 2;
+}
+
+.mouse-wheel-ribs {
+  fill: none;
+  stroke: rgba(0, 0, 0, 0.45);
+  stroke-width: 2;
+  stroke-linecap: round;
+  pointer-events: none;
 }

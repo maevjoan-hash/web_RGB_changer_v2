@@ -404,8 +404,6 @@
   panel.dataset.panel = bindingsTab.dataset.tab;
   panel.hidden = true;
   panel.innerHTML = `
-    <p class="settings-hint">Кликни върху ${deviceName}, за да му зададеш нова функция: друг клавиш,
-      комбинация, макро, медия или действие на мишката. Настройките се пазят в браузъра.</p>
     <p class="binding-profile" id="binding-profile"></p>
     <p class="binding-target" id="binding-target"></p>
 
@@ -513,7 +511,7 @@
     const target = selectedId ? findTarget(selectedId) : null;
     const bindings = profileBindings();
 
-    profileText.textContent = `Функциите важат за Профил ${Number(activeProfile()) + 1}. Профилът се сменя от „Профили“.`;
+    profileText.textContent = `Профил ${Number(activeProfile()) + 1}`;
 
     targets.forEach(({ id, el }) => {
       el.classList.toggle('is-binding-target', id === selectedId);
