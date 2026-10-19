@@ -205,6 +205,7 @@ const LogitechHidpp = (() => {
     async readOnboardInfo() {
       const r = await this.call(FEATURES.ONBOARD_PROFILES, 0x00);
       return {
+        raw: r.slice(0, 16),
         memory: r[0],
         format: r[1],
         profileCount: r[3],
@@ -435,7 +436,39 @@ const LogitechButtons = (() => {
   if (!device || !panels || !tab) return;
 
   const MODE_ONBOARD = 0x01;
-  const PROFILE_BUTTONS_OFFSET = 32;
+
+  // Форматът на профила се различава между поколенията мишки и не е публично описан за всички.
+  // Затова мястото на бутоните се намира във фабричния профил по първите два бутона
+  // (ляв и десен клик: 80 01 00 01 80 01 00 02), а подредбата на DPI се приема само ако
+  // всичките ѝ стойности са сред поддържаните от мишката.
+  // Формати 1–5 (Solaar): DPI по 2 байта от байт 3, индекс по подразбиране в байт 1.
+  // Формат 7 (PRO X 2 Superlight): DPI по 5 байта (X, Y, LOD) от байт 4, индекс в байт 2.
+  const BUTTON_SIGNATURE = [0x80, 0x01, 0x00, 0x01, 0x80, 0x01, 0x00, 0x02];
+  const DPI_LAYOUTS = [
+    { offset: 3, stride: 2, hasY: false, defaultIndexByte: 1 },
+    { offset: 4, stride: 5, hasY: true, defaultIndexByte: 2 }
+  ];
+
+  const detectLayout = (factory, dpiValues) => {
+    let buttons = null;
+    for (let offset = 0; offset + BUTTON_SIGNATURE.length <= factory.length - 2; offset += 4) {
+      if (BUTTON_SIGNATURE.every((byte, index) => factory[offset + index] === byte)) {
+        buttons = offset;
+        break;
+      }
+    }
+
+    const validDpi = new Set(dpiValues || []);
+    const dpi = DPI_LAYOUTS.find(({ offset, stride, defaultIndexByte }) => {
+      const entries = Array.from({ length: 5 }, (_, slot) => factory[offset + slot * stride] | (factory[offset + slot * stride + 1] << 8));
+      const used = entries.filter((value) => value !== 0 && value !== 0xffff);
+      return used.length > 0 && used.every((value) => validDpi.has(value)) && factory[defaultIndexByte] < 5;
+    }) || null;
+
+    return { buttons, dpi };
+  };
+
+  const hex = (bytes) => [...bytes].map((byte) => byte.toString(16).padStart(2, '0')).join(' ');
   const BUTTON_NAMES = ['Ляв бутон', 'Десен бутон', 'Среден бутон (колелце)', 'Страничен назад', 'Страничен напред', 'DPI бутон'];
 
   // Кой бутон от рисунката на сайта на кой бутон в мишката отговаря
@@ -481,10 +514,15 @@ const LogitechButtons = (() => {
         <ul class="binding-list" id="device-buttons"></ul>
         <p class="field__label" id="device-plan-title"></p>
         <ul class="binding-list" id="device-plan"></ul>
-        <div class="panel-actions">
+        <div class="panel-actions" id="device-write-actions">
           <button type="button" class="panel-btn" data-device-action="write">Запиши в мишката</button>
           <button type="button" class="panel-btn" data-device-action="factory">Върни фабричните бутони</button>
         </div>
+      </div>
+
+      <p class="panel-note" id="device-onboard-note" hidden></p>
+      <div class="panel-actions">
+        <button type="button" class="panel-btn" data-device-action="copy-diagnostics">Копирай техническа информация</button>
       </div>
     </div>
 
@@ -517,6 +555,8 @@ const LogitechButtons = (() => {
   const buttonsList = panel.querySelector('#device-buttons');
   const planTitle = panel.querySelector('#device-plan-title');
   const planList = panel.querySelector('#device-plan');
+  const writeActions = panel.querySelector('#device-write-actions');
+  const onboardNote = panel.querySelector('#device-onboard-note');
   const log = panel.querySelector('#device-log');
   const help = panel.querySelector('#device-help');
   const isLinux = /Linux/i.test(navigator.userAgent) && !/Android/i.test(navigator.userAgent);
@@ -542,6 +582,7 @@ const LogitechButtons = (() => {
   let deviceText = '';
   let dpiCaps = null;
   let onboard = null;
+  let diagnostics = {};
   let busy = false;
 
   const setLog = (message, isError = false) => {
@@ -583,9 +624,22 @@ const LogitechButtons = (() => {
     summary.textContent = `${deviceText}${modeText}`;
     if (!onboard) return;
 
+    const buttonsOffset = onboard.layout.buttons;
+    const recognized = buttonsOffset !== null;
+    writeActions.hidden = !recognized;
+    planTitle.hidden = !recognized;
+    planList.hidden = !recognized;
+
+    if (!recognized) {
+      buttonsList.replaceChildren(...listItems([
+        `Форматът на профилите в тази мишка (формат ${onboard.info.format}) още не е разпознат, затова бутоните не могат да се четат и записват.`
+      ]));
+      return;
+    }
+
     buttonsList.replaceChildren(...listItems(
       Array.from({ length: onboard.info.buttons }, (_, index) => {
-        const bytes = onboard.profile.slice(PROFILE_BUTTONS_OFFSET + index * 4, PROFILE_BUTTONS_OFFSET + index * 4 + 4);
+        const bytes = onboard.profile.slice(buttonsOffset + index * 4, buttonsOffset + index * 4 + 4);
         return `${BUTTON_NAMES[index] || `Бутон ${index + 1}`}: ${LogitechButtons.describe(bytes)}`;
       })
     ));
@@ -597,7 +651,7 @@ const LogitechButtons = (() => {
         const entry = plan.get(index);
         const name = BUTTON_NAMES[index] || `Бутон ${index + 1}`;
         if (!entry || entry.encoded === 'factory') {
-          const factory = onboard.factory.slice(PROFILE_BUTTONS_OFFSET + index * 4, PROFILE_BUTTONS_OFFSET + index * 4 + 4);
+          const factory = onboard.factory.slice(buttonsOffset + index * 4, buttonsOffset + index * 4 + 4);
           return `${name} → ${LogitechButtons.describe(factory)} (фабрично)`;
         }
         return `${name} → ${entry.description}`;
@@ -609,19 +663,28 @@ const LogitechButtons = (() => {
   // Чете профилите от паметта. Ако потребителски профил няма, работи с копие на фабричния.
   const loadOnboard = async () => {
     const info = await mouse.readOnboardInfo();
-    if (info.memory !== 0x01 || info.format > 0x05) {
-      throw new Error('Форматът на паметта на тази мишка не се поддържа.');
-    }
+    diagnostics.onboardDescription = hex(info.raw);
+    diagnostics.mode = await mouse.readMode();
 
-    const romDirectory = LogitechHidpp.parseDirectory(await mouse.readSector(0x0100, info.sectorSize));
-    const userDirectory = LogitechHidpp.parseDirectory(await mouse.readSector(0x0000, info.sectorSize));
+    const romSector = await mouse.readSector(0x0100, info.sectorSize);
+    const userSector = await mouse.readSector(0x0000, info.sectorSize);
+    diagnostics.romDirectory = hex(romSector);
+    diagnostics.userDirectory = hex(userSector);
+
+    const romDirectory = LogitechHidpp.parseDirectory(romSector);
+    const userDirectory = LogitechHidpp.parseDirectory(userSector);
     if (romDirectory.length === 0) throw new Error('Не са намерени фабрични профили в мишката.');
 
     const factory = await mouse.readSector(romDirectory[0].sector, info.sectorSize);
     const userEntry = userDirectory.find((entry) => entry.enabled) || userDirectory[0];
     const profile = userEntry ? await mouse.readSector(userEntry.sector, info.sectorSize) : factory.slice();
+    diagnostics.factoryProfile = hex(factory);
+    diagnostics.userProfile = userEntry ? hex(profile) : null;
 
-    onboard = { info, factory, profile, userEntry, mode: await mouse.readMode() };
+    const layout = detectLayout(factory, dpiCaps?.values);
+    diagnostics.detectedLayout = layout;
+
+    onboard = { info, factory, profile, userEntry, layout, mode: diagnostics.mode };
   };
 
   const connect = async () => {
@@ -650,17 +713,45 @@ const LogitechButtons = (() => {
       dpiRange.textContent = `(${values[0]}–${values[values.length - 1]})`;
     }
 
+    diagnostics = {
+      name,
+      deviceIndex: mouse.index,
+      userAgent: navigator.userAgent,
+      dpiValues: dpiCaps ? `${dpiCaps.values[0]}–${dpiCaps.values[dpiCaps.values.length - 1]} (${dpiCaps.values.length} стойности)` : null
+    };
+
+    // Проблем с профилите не трябва да пречи на името, батерията и DPI
     onboard = null;
-    if (await mouse.supports(LogitechHidpp.FEATURES.ONBOARD_PROFILES)) await loadOnboard();
+    let onboardMessage = '';
+    if (await mouse.supports(LogitechHidpp.FEATURES.ONBOARD_PROFILES)) {
+      try {
+        await loadOnboard();
+        if (onboard.layout.buttons === null) {
+          onboardMessage = `Профилите в паметта са във формат ${onboard.info.format}, който още не е разпознат. ` +
+            'Натисни „Копирай техническа информация“ и я изпрати, за да се добави поддръжка.';
+        } else if (!onboard.layout.dpi && dpiCaps) {
+          onboardMessage = 'Бутоните ще се записват, но мястото на DPI в профила не е разпознато, затова DPI се прилага само веднага.';
+        }
+      } catch (error) {
+        console.error(error);
+        diagnostics.onboardError = error.message;
+        onboard = null;
+        onboardMessage = `Профилите в паметта не могат да се прочетат: ${error.message}`;
+      }
+    } else {
+      onboardMessage = 'Тази мишка не поддържа профили в паметта, затова бутоните не могат да се записват.';
+    }
 
     deviceText = `${name} · ${connection}${batteryText}`;
     dpiBlock.hidden = !dpiCaps;
     buttonsBlock.hidden = !onboard;
+    onboardNote.hidden = !onboardMessage;
+    onboardNote.textContent = onboardMessage;
     details.hidden = false;
     connectButton.hidden = true;
     disconnectButton.hidden = false;
     renderDevice();
-    setLog(onboard ? 'Мишката е свързана.' : 'Мишката е свързана, но не поддържа профили в паметта.');
+    setLog('Мишката е свързана.');
   };
 
   const disconnect = async () => {
@@ -687,23 +778,30 @@ const LogitechButtons = (() => {
 
   // Записва профила (бутони + DPI) и директорията, проверява записаното и включва режима „профил от паметта“
   const writeProfile = async ({ factoryButtons = false } = {}) => {
-    const { info, factory, userEntry } = onboard;
+    const { info, factory, userEntry, layout } = onboard;
+    if (layout.buttons === null) throw new Error('Форматът на профила не е разпознат, затова нищо не е записано.');
+
     const profile = (userEntry ? onboard.profile : factory).slice();
     const { plan, skipped } = buildPlan();
 
     for (let index = 0; index < info.buttons; index += 1) {
-      const offset = PROFILE_BUTTONS_OFFSET + index * 4;
+      const offset = layout.buttons + index * 4;
       const entry = factoryButtons ? null : plan.get(index);
       const bytes = !entry || entry.encoded === 'factory' ? factory.slice(offset, offset + 4) : entry.encoded;
       profile.set(bytes, offset);
     }
 
-    if (dpiCaps && !factoryButtons) {
-      // DPI по подразбиране е на индекс profile[1] в списъка от 5 стойности (little-endian) от байт 3
+    if (dpiCaps && layout.dpi && !factoryButtons) {
+      // DPI по подразбиране: 5 стойности (little-endian), индексът им е в layout.dpi.defaultIndexByte
       const dpi = nearestDpi(Number(dpiInput.value));
-      const slot = Math.min(profile[1], 4);
-      profile[3 + slot * 2] = dpi & 0xff;
-      profile[4 + slot * 2] = dpi >> 8;
+      const { offset, stride, hasY, defaultIndexByte } = layout.dpi;
+      const at = offset + Math.min(profile[defaultIndexByte], 4) * stride;
+      profile[at] = dpi & 0xff;
+      profile[at + 1] = dpi >> 8;
+      if (hasY) {
+        profile[at + 2] = dpi & 0xff;
+        profile[at + 3] = dpi >> 8;
+      }
     }
 
     LogitechHidpp.withCrc(profile);
@@ -751,6 +849,15 @@ const LogitechButtons = (() => {
     'copy-commands': run(async () => {
       await navigator.clipboard.writeText(LINUX_COMMANDS);
       setLog('Командите са копирани. Постави ги в терминала.');
+    }),
+    'copy-diagnostics': run(async () => {
+      if (mouse) {
+        diagnostics.features = Object.fromEntries(Object.entries(LogitechHidpp.FEATURES).map(
+          ([featureName, id]) => [featureName, mouse.featureIndexes.get(id) ?? 'не е проверена']
+        ));
+      }
+      await navigator.clipboard.writeText(JSON.stringify(diagnostics, null, 2));
+      setLog('Техническата информация е копирана. Изпрати я, за да се добави поддръжка за тази мишка.');
     }),
     disconnect: run(disconnect),
     'apply-dpi': run(applyDpi),
