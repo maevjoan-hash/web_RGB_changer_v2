@@ -1,0 +1,382 @@
+// --- RGB ЛОГИКА: цветове, ефекти, яркост, скорост и профили ---
+(() => {
+  const device = document.querySelector('.keyboard, .mouse-svg');
+  const settingsMenu = document.querySelector('.settings-menu');
+  const settingsTabs = document.querySelectorAll('.settings-tab');
+
+  if (!device || !settingsMenu || settingsTabs.length === 0) return;
+
+  const isKeyboard = device.classList.contains('keyboard');
+  const PROFILE_COUNT = 3;
+  const DEFAULT_COLOR = '#a06bff';
+  const storageKey = `rgb-changer:${location.pathname.split('/').pop() || 'index.html'}`;
+
+  const PRESET_COLORS = [
+    { color: '#ff1744', name: 'Червен' },
+    { color: '#ff9100', name: 'Оранжев' },
+    { color: '#ffea00', name: 'Жълт' },
+    { color: '#00e676', name: 'Зелен' },
+    { color: '#00e5ff', name: 'Циан' },
+    { color: '#2979ff', name: 'Син' },
+    { color: '#a06bff', name: 'Лилав' },
+    { color: '#ff4081', name: 'Розов' },
+    { color: '#ffffff', name: 'Бял' }
+  ];
+
+  const EFFECTS = [
+    { id: 'static', label: 'Статичен', usesColors: true, usesSpeed: false },
+    { id: 'breathing', label: 'Дишане', usesColors: true, usesSpeed: true },
+    { id: 'wave', label: 'Вълна', usesColors: false, usesSpeed: true },
+    { id: 'spectrum', label: 'Дъга', usesColors: false, usesSpeed: true },
+    { id: 'off', label: 'Изключено', usesColors: false, usesSpeed: false }
+  ];
+
+  const getEffect = (id) => EFFECTS.find((effect) => effect.id === id) || EFFECTS[0];
+
+  // Скорост 1 (бавно) – 10 (бързо) се превръща в продължителност на анимацията
+  const speedToSeconds = (speed) => (8 - ((speed - 1) * 7) / 9).toFixed(2);
+
+  const createProfile = () => ({
+    color: DEFAULT_COLOR,
+    leds: {},
+    effect: 'static',
+    brightness: 100,
+    speed: 5
+  });
+
+  // --- LED ЗОНИ НА УСТРОЙСТВОТО ---
+  const leds = [];
+
+  if (isKeyboard) {
+    device.querySelectorAll('.key').forEach((el, index) => leds.push({ id: `k${index}`, el }));
+  } else {
+    device.querySelectorAll('.mouse-btn-group').forEach((el) => leds.push({ id: el.dataset.btn, el }));
+    device.querySelectorAll('.mouse-rgb-strip, .mouse-gaming-logo, .mouse-logo-ring').forEach((el) => {
+      el.classList.add('mouse-led-zone');
+      leds.push({ id: el.classList.contains('mouse-rgb-strip') ? 'strip' : 'logo', el });
+    });
+  }
+
+  leds.forEach(({ id, el }) => {
+    el.dataset.led = id;
+  });
+
+  // Позиция по хоризонтала (0–1), нужна за ефекта „Вълна“
+  const updateWavePositions = () => {
+    const box = device.getBoundingClientRect();
+    if (!box.width) return;
+
+    leds.forEach(({ el }) => {
+      const rect = el.getBoundingClientRect();
+      const position = (rect.left + rect.width / 2 - box.left) / box.width;
+      el.style.setProperty('--wave-pos', position.toFixed(3));
+    });
+  };
+
+  // --- СЪХРАНЕНИЕ ---
+  const loadState = () => {
+    try {
+      const saved = JSON.parse(localStorage.getItem(storageKey));
+
+      if (saved && Array.isArray(saved.profiles)) {
+        return {
+          active: Math.min(Math.max(Number(saved.active) || 0, 0), PROFILE_COUNT - 1),
+          profiles: Array.from({ length: PROFILE_COUNT }, (_, index) => {
+            const profile = { ...createProfile(), ...saved.profiles[index] };
+            profile.effect = getEffect(profile.effect).id;
+            profile.leds = profile.leds && typeof profile.leds === 'object' ? profile.leds : {};
+            return profile;
+          })
+        };
+      }
+    } catch (error) {
+      console.warn('Неуспешно зареждане на RGB настройките', error);
+    }
+
+    return { active: 0, profiles: Array.from({ length: PROFILE_COUNT }, createProfile) };
+  };
+
+  const state = loadState();
+  const currentProfile = () => state.profiles[state.active];
+
+  const saveState = () => {
+    try {
+      localStorage.setItem(storageKey, JSON.stringify(state));
+    } catch (error) {
+      console.warn('Неуспешно запазване на RGB настройките', error);
+    }
+  };
+
+  // --- ПАНЕЛИ С НАСТРОЙКИ ---
+  const ledName = isKeyboard ? 'клавиши' : 'бутони или светещи зони';
+
+  const panels = document.createElement('div');
+  panels.className = 'settings-panels';
+  panels.innerHTML = `
+    <div class="settings-panel" data-panel="1">
+      <p class="settings-hint">Кликни върху ${ledName}, за да ги избереш. Без избор цветът се прилага към цялото устройство.</p>
+      <div class="color-row">
+        <label class="color-picker">
+          <input type="color" id="rgb-color-input" />
+          <span id="rgb-color-value"></span>
+        </label>
+        <span class="selection-count" id="rgb-selection-count"></span>
+      </div>
+      <div class="color-presets" role="group" aria-label="Готови цветове">
+        ${PRESET_COLORS.map(
+          ({ color, name }) =>
+            `<button type="button" class="color-swatch" data-color="${color}" aria-label="${name}" title="${name}"></button>`
+        ).join('')}
+      </div>
+      <p class="panel-note" id="rgb-color-note" hidden></p>
+      <div class="panel-actions">
+        <button type="button" class="panel-btn" data-action="select-all">Избери всички</button>
+        <button type="button" class="panel-btn" data-action="clear-selection">Изчисти избора</button>
+        <button type="button" class="panel-btn" data-action="reset-colors">Нулирай цветовете</button>
+      </div>
+    </div>
+
+    <div class="settings-panel" data-panel="2">
+      <fieldset class="effect-options">
+        <legend class="visually-hidden">Светлинен ефект</legend>
+        ${EFFECTS.map(
+          ({ id, label }) =>
+            `<label class="effect-option"><input type="radio" name="rgb-effect" value="${id}" /><span>${label}</span></label>`
+        ).join('')}
+      </fieldset>
+    </div>
+
+    <div class="settings-panel" data-panel="3">
+      <label class="range-field">
+        <span class="range-field__label">Яркост <output id="rgb-brightness-value"></output></span>
+        <input type="range" id="rgb-brightness" min="10" max="100" step="5" />
+      </label>
+      <label class="range-field">
+        <span class="range-field__label">Скорост на ефекта <output id="rgb-speed-value"></output></span>
+        <input type="range" id="rgb-speed" min="1" max="10" step="1" />
+      </label>
+      <p class="panel-note" id="rgb-speed-note" hidden>Скоростта важи за ефектите Дишане, Вълна и Дъга.</p>
+    </div>
+
+    <div class="settings-panel" data-panel="4">
+      <p class="settings-hint">Всеки профил пази собствени цветове и ефект. Промените се запазват автоматично.</p>
+      <div class="panel-actions" role="group" aria-label="Профили">
+        ${Array.from(
+          { length: PROFILE_COUNT },
+          (_, index) =>
+            `<button type="button" class="panel-btn profile-btn" data-profile="${index}">Профил ${index + 1}</button>`
+        ).join('')}
+      </div>
+      <div class="panel-actions">
+        <button type="button" class="panel-btn" data-action="reset-profile">Нулирай профила</button>
+      </div>
+    </div>
+  `;
+  settingsMenu.append(panels);
+
+  const colorInput = panels.querySelector('#rgb-color-input');
+  const colorValue = panels.querySelector('#rgb-color-value');
+  const colorNote = panels.querySelector('#rgb-color-note');
+  const selectionCount = panels.querySelector('#rgb-selection-count');
+  const brightnessInput = panels.querySelector('#rgb-brightness');
+  const brightnessValue = panels.querySelector('#rgb-brightness-value');
+  const speedInput = panels.querySelector('#rgb-speed');
+  const speedValue = panels.querySelector('#rgb-speed-value');
+  const speedNote = panels.querySelector('#rgb-speed-note');
+  const effectInputs = panels.querySelectorAll('input[name="rgb-effect"]');
+  const profileButtons = panels.querySelectorAll('.profile-btn');
+
+  panels.querySelectorAll('.color-swatch').forEach((swatch) => {
+    swatch.style.setProperty('--swatch', swatch.dataset.color);
+  });
+
+  // --- ТАБОВЕ ---
+  const panelElements = panels.querySelectorAll('.settings-panel');
+
+  const selectTab = (tabToSelect, moveFocus = false) => {
+    settingsTabs.forEach((tab) => {
+      const isSelected = tab === tabToSelect;
+      tab.setAttribute('aria-selected', String(isSelected));
+      tab.tabIndex = isSelected ? 0 : -1;
+    });
+    panelElements.forEach((panel) => {
+      panel.hidden = panel.dataset.panel !== tabToSelect.dataset.tab;
+    });
+    if (moveFocus) tabToSelect.focus();
+  };
+
+  settingsTabs.forEach((tab, index) => {
+    const panel = panels.querySelector(`[data-panel="${tab.dataset.tab}"]`);
+    tab.id = `settings-tab-${tab.dataset.tab}`;
+    tab.setAttribute('role', 'tab');
+    if (panel) {
+      panel.id = `settings-panel-${tab.dataset.tab}`;
+      panel.setAttribute('role', 'tabpanel');
+      panel.setAttribute('aria-labelledby', tab.id);
+      tab.setAttribute('aria-controls', panel.id);
+    }
+
+    tab.addEventListener('click', () => selectTab(tab));
+    tab.addEventListener('keydown', (event) => {
+      const step = { ArrowRight: 1, ArrowLeft: -1 }[event.key];
+      if (!step) return;
+      event.preventDefault();
+      selectTab(settingsTabs[(index + step + settingsTabs.length) % settingsTabs.length], true);
+    });
+  });
+
+  selectTab(settingsTabs[0]);
+
+  // --- ИЗБОР НА ЗОНИ ---
+  const selected = new Set();
+
+  const setSelected = (led, isSelected) => {
+    if (isSelected) selected.add(led.id);
+    else selected.delete(led.id);
+
+    led.el.classList.toggle('is-selected', isSelected);
+    if (led.el.getAttribute('role') === 'button') {
+      led.el.setAttribute('aria-pressed', String(isSelected));
+    }
+  };
+
+  const toggleLed = (el) => {
+    const led = leds.find((item) => item.el === el);
+    if (!led) return;
+    setSelected(led, !selected.has(led.id));
+    render();
+  };
+
+  device.addEventListener('click', (event) => {
+    const el = event.target.closest('[data-led]');
+    if (el && device.contains(el)) toggleLed(el);
+  });
+
+  device.addEventListener('keydown', (event) => {
+    const el = event.target.closest('[data-led][role="button"]');
+    if (!el || (event.key !== 'Enter' && event.key !== ' ')) return;
+    event.preventDefault();
+    toggleLed(el);
+  });
+
+  // --- ПРОМЕНИ ПО НАСТРОЙКИТЕ ---
+  const update = (change) => {
+    change(currentProfile());
+    saveState();
+    render();
+  };
+
+  const applyColor = (color) => {
+    update((profile) => {
+      if (selected.size > 0) {
+        selected.forEach((id) => {
+          profile.leds[id] = color;
+        });
+      } else {
+        profile.color = color;
+        profile.leds = {};
+      }
+
+      // Ефектите без собствени цветове се сменят на статичен, за да се види изборът
+      if (!getEffect(profile.effect).usesColors) profile.effect = 'static';
+    });
+  };
+
+  colorInput.addEventListener('input', () => applyColor(colorInput.value.toLowerCase()));
+
+  panels.addEventListener('click', (event) => {
+    const swatch = event.target.closest('.color-swatch');
+    if (swatch) {
+      applyColor(swatch.dataset.color);
+      return;
+    }
+
+    const profileButton = event.target.closest('.profile-btn');
+    if (profileButton) {
+      state.active = Number(profileButton.dataset.profile);
+      saveState();
+      render();
+      return;
+    }
+
+    const action = event.target.closest('[data-action]')?.dataset.action;
+
+    if (action === 'select-all') {
+      leds.forEach((led) => setSelected(led, true));
+      render();
+    } else if (action === 'clear-selection') {
+      leds.forEach((led) => setSelected(led, false));
+      render();
+    } else if (action === 'reset-colors') {
+      update((profile) => {
+        if (selected.size > 0) {
+          selected.forEach((id) => delete profile.leds[id]);
+        } else {
+          profile.leds = {};
+        }
+      });
+    } else if (action === 'reset-profile') {
+      state.profiles[state.active] = createProfile();
+      saveState();
+      render();
+    }
+  });
+
+  effectInputs.forEach((input) => {
+    input.addEventListener('change', () => update((profile) => {
+      profile.effect = input.value;
+    }));
+  });
+
+  brightnessInput.addEventListener('input', () => update((profile) => {
+    profile.brightness = Number(brightnessInput.value);
+  }));
+
+  speedInput.addEventListener('input', () => update((profile) => {
+    profile.speed = Number(speedInput.value);
+  }));
+
+  // --- ВИЗУАЛИЗАЦИЯ ---
+  function render() {
+    const profile = currentProfile();
+    const effect = getEffect(profile.effect);
+
+    device.classList.toggle('rgb-on', effect.id !== 'off');
+    EFFECTS.forEach(({ id }) => device.classList.toggle(`rgb-effect-${id}`, id === effect.id));
+    device.style.setProperty('--rgb-brightness', String(profile.brightness / 100));
+    device.style.setProperty('--rgb-duration', `${speedToSeconds(profile.speed)}s`);
+
+    leds.forEach(({ id, el }) => {
+      el.style.setProperty('--led', profile.leds[id] || profile.color);
+    });
+
+    // Цветът в полето е на първата избрана зона или основният цвят
+    const firstSelected = selected.values().next().value;
+    const shownColor = (firstSelected && profile.leds[firstSelected]) || profile.color;
+    colorInput.value = shownColor;
+    colorValue.textContent = shownColor.toUpperCase();
+    selectionCount.textContent = selected.size > 0 ? `Избрани: ${selected.size}` : 'Избрано: цялото устройство';
+
+    colorNote.hidden = effect.usesColors;
+    colorNote.textContent = `Ефектът „${effect.label}“ не използва избраните цветове. При избор на цвят ще се включи „Статичен“.`;
+
+    effectInputs.forEach((input) => {
+      input.checked = input.value === effect.id;
+    });
+
+    brightnessInput.value = profile.brightness;
+    brightnessValue.textContent = `${profile.brightness}%`;
+    speedInput.value = profile.speed;
+    speedValue.textContent = profile.speed;
+    speedInput.disabled = !effect.usesSpeed;
+    speedNote.hidden = effect.usesSpeed;
+
+    profileButtons.forEach((button) => {
+      button.setAttribute('aria-pressed', String(Number(button.dataset.profile) === state.active));
+    });
+  }
+
+  updateWavePositions();
+  window.addEventListener('resize', updateWavePositions);
+  render();
+})();

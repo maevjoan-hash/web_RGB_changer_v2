@@ -607,7 +607,7 @@ body {
 
 .mouse-btn-group:hover .mouse-btn,
 .mouse-btn-group:focus-visible .mouse-btn,
-.mouse-btn-group.is-active .mouse-btn {
+.mouse-btn-group.is-selected .mouse-btn {
   fill: var(--key-active-color, #b8d4f0);
 }
 
@@ -714,4 +714,317 @@ body {
 .coming-soon__text {
   max-width: 420px;
   color: rgba(255, 255, 255, 0.75);
+}
+
+/* --- RGB ОСВЕТЛЕНИЕ --- */
+@property --rgb-hue {
+  syntax: '<number>';
+  inherits: false;
+  initial-value: 0;
+}
+
+@property --rgb-breath {
+  syntax: '<number>';
+  inherits: false;
+  initial-value: 1;
+}
+
+.rgb-on [data-led] {
+  --led-color: var(--led, #ffffff);
+  --led-lit: color-mix(in srgb, var(--led-color) calc(var(--rgb-brightness, 1) * var(--rgb-breath) * 100%), #000000);
+}
+
+.rgb-effect-breathing [data-led] {
+  animation: rgb-breath var(--rgb-duration, 4s) ease-in-out infinite;
+}
+
+.rgb-effect-wave [data-led],
+.rgb-effect-spectrum [data-led] {
+  --led-color: hsl(calc(var(--rgb-hue) * 1deg) 100% 50%);
+  animation: rgb-hue var(--rgb-duration, 4s) linear infinite;
+}
+
+.rgb-effect-wave [data-led] {
+  animation-delay: calc(var(--wave-pos, 0) * var(--rgb-duration, 4s) * -1);
+}
+
+@keyframes rgb-breath {
+  0%,
+  100% {
+    --rgb-breath: 1;
+  }
+
+  50% {
+    --rgb-breath: 0.12;
+  }
+}
+
+@keyframes rgb-hue {
+  from {
+    --rgb-hue: 0;
+  }
+
+  to {
+    --rgb-hue: 360;
+  }
+}
+
+.keyboard.rgb-on .key {
+  background: #1b1d23;
+  color: var(--led-lit);
+  text-shadow: 0 0 6px var(--led-lit);
+  box-shadow:
+    0 3px 0 #0b0c0f,
+    0 0 12px color-mix(in srgb, var(--led-lit) 55%, transparent),
+    inset 0 0 8px color-mix(in srgb, var(--led-lit) 35%, transparent);
+}
+
+.keyboard.rgb-on .key:hover {
+  background: #272a33;
+}
+
+.keyboard.rgb-on .key:active {
+  box-shadow:
+    0 1px 0 #0b0c0f,
+    0 0 12px color-mix(in srgb, var(--led-lit) 55%, transparent);
+}
+
+.key.is-selected {
+  outline: 2px solid #ffffff;
+  outline-offset: 2px;
+}
+
+.mouse-led-zone {
+  cursor: pointer;
+  pointer-events: all;
+}
+
+.mouse-svg.rgb-on .mouse-btn {
+  fill: #1b1d23;
+  stroke: var(--led-lit);
+  filter: drop-shadow(0 0 5px var(--led-lit));
+}
+
+.mouse-svg.rgb-on .mouse-btn-group:hover .mouse-btn {
+  fill: #272a33;
+}
+
+.mouse-svg.rgb-on .mouse-btn-label {
+  fill: var(--led-lit);
+}
+
+.mouse-svg.rgb-on .mouse-rgb-strip,
+.mouse-svg.rgb-on .mouse-logo-ring {
+  stroke: var(--led-lit);
+  filter: drop-shadow(0 0 6px var(--led-lit));
+}
+
+.mouse-svg.rgb-on .mouse-gaming-logo {
+  fill: color-mix(in srgb, var(--led-lit) 25%, transparent);
+  stroke: var(--led-lit);
+  filter: drop-shadow(0 0 8px var(--led-lit));
+}
+
+.mouse-svg:not(.rgb-on) .mouse-rgb-strip,
+.mouse-svg:not(.rgb-on) .mouse-gaming-logo {
+  fill: none;
+  stroke: #4a4f5a;
+  filter: none;
+}
+
+.mouse-btn-group.is-selected .mouse-btn {
+  stroke: #ffffff;
+  stroke-width: 3.5;
+}
+
+.mouse-led-zone.is-selected {
+  stroke-dasharray: 8 5;
+}
+
+/* --- ПАНЕЛИ С НАСТРОЙКИ --- */
+.settings-tabs {
+  flex-wrap: wrap;
+  row-gap: 4px;
+}
+
+.settings-tab {
+  white-space: nowrap;
+}
+
+.settings-tab[aria-selected='true'] {
+  background: #b8d4f0;
+}
+
+.settings-panels {
+  width: 100%;
+  max-width: 780px;
+}
+
+.settings-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 18px;
+  background: rgba(30, 15, 50, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 10px;
+  color: #ffffff;
+}
+
+.settings-panel[hidden] {
+  display: none;
+}
+
+.settings-hint {
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.panel-note {
+  font-size: 0.85rem;
+  color: #ffd98a;
+}
+
+.panel-note[hidden] {
+  display: none;
+}
+
+.color-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.color-picker {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: 'Courier New', monospace;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.color-picker input {
+  width: 52px;
+  height: 36px;
+  padding: 2px;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.selection-count {
+  font-size: 0.9rem;
+  color: #b8d4f0;
+  font-weight: bold;
+}
+
+.color-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.color-swatch {
+  width: 30px;
+  height: 30px;
+  background: var(--swatch);
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  border-radius: 50%;
+  box-shadow: 0 0 8px var(--swatch);
+  cursor: pointer;
+  transition: transform 0.1s ease, border-color 0.1s ease;
+}
+
+.color-swatch:hover,
+.color-swatch:focus-visible {
+  border-color: #ffffff;
+  transform: scale(1.12);
+}
+
+.panel-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.panel-btn {
+  padding: 8px 14px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 8px;
+  color: #ffffff;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.panel-btn:hover,
+.panel-btn:focus-visible {
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.panel-btn[aria-pressed='true'] {
+  background: rgba(184, 212, 240, 0.3);
+  border-color: #b8d4f0;
+}
+
+.effect-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 8px;
+  border: none;
+}
+
+.effect-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 8px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.effect-option:has(input:checked) {
+  background: rgba(184, 212, 240, 0.2);
+  border-color: #b8d4f0;
+}
+
+.effect-option input,
+.range-field input {
+  accent-color: #b8d4f0;
+}
+
+.range-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-weight: bold;
+}
+
+.range-field__label {
+  display: flex;
+  justify-content: space-between;
+}
+
+.range-field input {
+  width: 100%;
+}
+
+.range-field input:disabled {
+  opacity: 0.4;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }

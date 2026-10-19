@@ -61,7 +61,6 @@ if (canvas) {
 
 // --- ЛОГИКА ЗА БУТОНИТЕ ---
 const connectedDevicesBtn = document.querySelector('#connected-devices-btn');
-const settingsTabs = document.querySelectorAll('.settings-tab');
 const layoutSwitchers = document.querySelectorAll('.layout-switcher');
 
 layoutSwitchers.forEach((switcher) => {
@@ -91,22 +90,6 @@ layoutSwitchers.forEach((switcher) => {
     if (event.key === 'Escape' && switcher.classList.contains('is-open')) {
       setOpen(false);
       button.focus();
-    }
-  });
-});
-
-document.querySelectorAll('.mouse-btn-group').forEach((mouseButton) => {
-  const togglePressed = () => {
-    const isPressed = mouseButton.getAttribute('aria-pressed') === 'true';
-    mouseButton.setAttribute('aria-pressed', String(!isPressed));
-    mouseButton.classList.toggle('is-active', !isPressed);
-  };
-
-  mouseButton.addEventListener('click', togglePressed);
-  mouseButton.addEventListener('keydown', (event) => {
-    if (event.key === 'Enter' || event.key === ' ') {
-      event.preventDefault();
-      togglePressed();
     }
   });
 });
@@ -151,9 +134,3 @@ if (connectedDevicesBtn) {
     }
   });
 }
-
-settingsTabs.forEach((tab) => {
-  tab.addEventListener('click', () => {
-    console.log(`Натиснат е бутон ${tab.dataset.tab}`);
-  });
-});
