@@ -97,6 +97,7 @@
   };
 
   const state = loadState();
+  device.dataset.profileCount = String(PROFILE_COUNT);
   const currentProfile = () => state.profiles[state.active];
 
   const saveState = () => {
@@ -159,7 +160,7 @@
     </div>
 
     <div class="settings-panel" data-panel="4">
-      <p class="settings-hint">Всеки профил пази собствени цветове и ефект. Промените се запазват автоматично.</p>
+      <p class="settings-hint">Всеки профил пази собствени цветове, ефект и функции на бутоните. Промените се запазват автоматично.</p>
       <div class="panel-actions" role="group" aria-label="Профили">
         ${Array.from(
           { length: PROFILE_COUNT },
@@ -319,6 +320,7 @@
     } else if (action === 'reset-profile') {
       state.profiles[state.active] = createProfile();
       saveState();
+      device.dispatchEvent(new CustomEvent('profilereset', { detail: { profile: state.active } }));
       render();
     }
   });
@@ -340,6 +342,12 @@
   // --- ВИЗУАЛИЗАЦИЯ ---
   function render() {
     const profile = currentProfile();
+
+    // Активният профил се вижда и от другите скриптове (bindings.js пази функции за всеки профил)
+    if (device.dataset.profile !== String(state.active)) {
+      device.dataset.profile = String(state.active);
+      device.dispatchEvent(new CustomEvent('profilechange', { detail: { profile: state.active } }));
+    }
     const effect = getEffect(profile.effect);
 
     device.classList.toggle('rgb-on', effect.id !== 'off');
