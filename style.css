@@ -874,3 +874,193 @@ button.layout-option {
   clip-path: inset(50%);
   white-space: nowrap;
 }
+
+/* --- ФУНКЦИИ НА БУТОНИТЕ --- */
+.settings-panel [hidden] {
+  display: none;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.field__label {
+  font-size: 0.85rem;
+  font-weight: bold;
+  color: #b8d4f0;
+}
+
+.field__select {
+  padding: 9px 10px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 8px;
+  color: #ffffff;
+  font: inherit;
+  cursor: pointer;
+}
+
+.field__select option {
+  background: #1e1234;
+  color: #ffffff;
+}
+
+.binding-target {
+  font-weight: bold;
+}
+
+.binding-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+}
+
+.binding-current strong {
+  color: #ffd98a;
+}
+
+.binding-field {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.binding-recorded {
+  font-family: 'Courier New', monospace;
+  font-weight: bold;
+  color: #ffd98a;
+}
+
+.panel-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.binding-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.binding-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  list-style: none;
+}
+
+.binding-list li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px 6px 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+}
+
+.binding-list__name,
+.binding-list__remove {
+  background: none;
+  border: none;
+  color: #ffffff;
+  font: inherit;
+  cursor: pointer;
+}
+
+.binding-list__name {
+  flex: 1;
+  text-align: left;
+}
+
+.binding-list__remove {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  font-size: 1.1rem;
+}
+
+.binding-list__name:hover,
+.binding-list__remove:hover,
+.binding-list__remove:focus-visible {
+  color: #ffd98a;
+}
+
+.binding-list__empty {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+/* Избраният за преназначаване бутон и значката за променена функция */
+.key.is-binding-target {
+  outline: 2px dashed #ffd98a;
+  outline-offset: 2px;
+}
+
+.keyboard.bindings-mode .key.is-selected:not(.is-binding-target) {
+  outline: none;
+}
+
+.key.has-binding::after {
+  content: '';
+  position: absolute;
+  top: calc(var(--unit) * 0.08);
+  right: calc(var(--unit) * 0.13);
+  width: calc(var(--unit) * 0.13);
+  height: calc(var(--unit) * 0.13);
+  background: #ffd98a;
+  border-radius: 50%;
+  box-shadow: 0 0 calc(var(--unit) * 0.1) #ffd98a;
+}
+
+.mouse-svg.bindings-mode .mouse-btn-group.is-selected .mouse-btn {
+  stroke: #000000;
+  stroke-width: 2;
+}
+
+.mouse-svg.rgb-on.bindings-mode .mouse-btn-group.is-selected .mouse-btn {
+  stroke: var(--led-lit);
+}
+
+.mouse-svg .mouse-btn-group.is-binding-target .mouse-btn {
+  stroke: #ffd98a;
+  stroke-width: 3.5;
+  stroke-dasharray: 6 4;
+}
+
+.binding-badge {
+  fill: #ffd98a;
+  stroke: #1b1d23;
+  stroke-width: 1.5;
+  pointer-events: none;
+}
+
+.mouse-btn-group:not(.has-binding) .binding-badge {
+  display: none;
+}
+
+.binding-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  z-index: 10;
+  max-width: min(520px, calc(100vw - 32px));
+  padding: 12px 18px;
+  background: rgba(30, 18, 52, 0.97);
+  border: 1px solid #ffd98a;
+  border-radius: 10px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  color: #ffffff;
+  font-weight: bold;
+  text-align: center;
+  transform: translateX(-50%);
+}
+
+.binding-toast[hidden] {
+  display: none;
+}
