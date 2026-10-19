@@ -65,21 +65,26 @@ const LogitechHidpp = (() => {
       if (this.hid.opened) await this.hid.close();
     }
 
+    // Отчетите, които не са отговор на текущата заявка, са събития (напр. неактивност, нова връзка с приемника)
     onReport(event) {
-      if (!this.pending || (event.reportId !== LONG_REPORT && event.reportId !== SHORT_REPORT)) return;
+      if (event.reportId !== LONG_REPORT && event.reportId !== SHORT_REPORT) return;
 
       const bytes = new Uint8Array(event.data.buffer, event.data.byteOffset, event.data.byteLength);
-      const { index, featureIndex, functionId, resolve, reject } = this.pending;
-      if (bytes[0] !== index) return;
-
-      if (bytes[1] === featureIndex && bytes[2] === functionId) {
-        resolve(bytes.slice(3));
-      } else if ((bytes[1] === 0xff || bytes[1] === 0x8f) && bytes[2] === featureIndex && bytes[3] === functionId) {
-        const code = bytes[4];
-        const error = new Error(`Устройството върна грешка: ${ERROR_NAMES[code] || `код ${code}`}`);
-        error.hidppCode = code;
-        reject(error);
+      if (this.pending && bytes[0] === this.pending.index) {
+        const { featureIndex, functionId, resolve, reject } = this.pending;
+        if (bytes[1] === featureIndex && bytes[2] === functionId) {
+          resolve(bytes.slice(3));
+          return;
+        }
+        if ((bytes[1] === 0xff || bytes[1] === 0x8f) && bytes[2] === featureIndex && bytes[3] === functionId) {
+          const code = bytes[4];
+          const error = new Error(`Устройството върна грешка: ${ERROR_NAMES[code] || `код ${code}`}`);
+          error.hidppCode = code;
+          reject(error);
+          return;
+        }
       }
+      this.onNotification?.(event.reportId, bytes);
     }
 
     // Заявките се изпращат една по една, защото отговорът се разпознава по feature и функция
@@ -330,21 +335,31 @@ const LogitechHidpp = (() => {
       ]
     });
 
-    // HID++ минава през колекцията, която приема long report 0x11
-    const hid = devices.find((candidate) => candidate.collections.some(
-      (collection) => collection.outputReports?.some((report) => report.reportId === LONG_REPORT)
-    ));
-
+    const hid = devices.find(speaksHidpp);
     if (devices.length === 0) return null;
     if (!hid) throw new Error('Избраното устройство не поддържа HID++ (протокола на Logitech).');
+    return openDevice(hid);
+  }
 
+  // HID++ минава през колекцията, която приема long report 0x11
+  const speaksHidpp = (hid) => hid.vendorId === VENDOR_ID && hid.collections.some(
+    (collection) => collection.outputReports?.some((report) => report.reportId === LONG_REPORT)
+  );
+
+  async function openDevice(hid) {
     const device = new HidppDevice(hid);
     await device.open();
     await device.findDeviceIndex();
     return device;
   }
 
-  return { FEATURES, requestDevice, crc16, withCrc, parseDirectory, buildDirectory };
+  // Устройствата, за които браузърът вече има разрешение – отварят се без въпрос към потребителя
+  async function grantedDevices() {
+    if (!navigator.hid || !window.isSecureContext) return [];
+    return (await navigator.hid.getDevices()).filter(speaksHidpp);
+  }
+
+  return { FEATURES, requestDevice, openDevice, grantedDevices, speaksHidpp, crc16, withCrc, parseDirectory, buildDirectory };
 })();
 
 // --- БУТОНИТЕ В ПРОФИЛА НА МИШКАТА ---
