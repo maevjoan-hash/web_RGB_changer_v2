@@ -1,7 +1,8 @@
 // --- RGB ЛОГИКА: цветове, ефекти, яркост, скорост и профили ---
 (() => {
   const device = document.querySelector('.keyboard, .mouse-svg');
-  const settingsMenu = document.querySelector('.settings-menu');
+  // Подсветката е в лявата колона; ако страницата няма колони, се ползва единственото меню
+  const settingsMenu = document.querySelector('[data-column="lighting"]') || document.querySelector('.settings-menu');
   const settingsTabs = document.querySelectorAll('.settings-tab');
 
   if (!device || !settingsMenu || settingsTabs.length === 0) return;
@@ -110,7 +111,7 @@
 
   // --- ПАНЕЛИ С НАСТРОЙКИ ---
 
-  const panels = document.createElement('div');
+  const panels = settingsMenu.querySelector('.settings-panels') || settingsMenu.appendChild(document.createElement('div'));
   panels.className = 'settings-panels';
   panels.innerHTML = `
     <div class="settings-panel" data-panel="1">
@@ -155,21 +156,22 @@
         <input type="range" id="rgb-speed" min="1" max="10" step="1" />
       </label>
     </div>
-
-    <div class="settings-panel" data-panel="4">
-      <div class="panel-actions" role="group" aria-label="Профили">
-        ${Array.from(
-          { length: PROFILE_COUNT },
-          (_, index) =>
-            `<button type="button" class="panel-btn profile-btn" data-profile="${index}">Профил ${index + 1}</button>`
-        ).join('')}
-      </div>
-      <div class="panel-actions">
-        <button type="button" class="panel-btn" data-action="reset-profile">Нулирай профила</button>
-      </div>
-    </div>
   `;
-  settingsMenu.append(panels);
+
+  // Профилите са в лентата под устройството (data-profiles), заедно с бутоните за запис
+  const profilesBar = document.querySelector('[data-profiles]') || panels;
+  const profileControls = document.createElement('div');
+  profileControls.className = 'panel-actions save-bar__row';
+  profileControls.setAttribute('role', 'group');
+  profileControls.setAttribute('aria-label', 'Профили');
+  profileControls.innerHTML = `
+    ${Array.from(
+      { length: PROFILE_COUNT },
+      (_, index) => `<button type="button" class="panel-btn profile-btn" data-profile="${index}">Профил ${index + 1}</button>`
+    ).join('')}
+    <button type="button" class="panel-btn" data-action="reset-profile">Нулирай профила</button>
+  `;
+  profilesBar.append(profileControls);
 
   const colorInput = panels.querySelector('#rgb-color-input');
   const colorValue = panels.querySelector('#rgb-color-value');
@@ -180,29 +182,29 @@
   const speedInput = panels.querySelector('#rgb-speed');
   const speedValue = panels.querySelector('#rgb-speed-value');
   const effectInputs = panels.querySelectorAll('input[name="rgb-effect"]');
-  const profileButtons = panels.querySelectorAll('.profile-btn');
+  const profileButtons = profileControls.querySelectorAll('.profile-btn');
 
   panels.querySelectorAll('.color-swatch').forEach((swatch) => {
     swatch.style.setProperty('--swatch', swatch.dataset.color);
   });
 
-  // --- МЕНЮ „ВСИЧКИ НАСТРОЙКИ“ ---
-  // Бутонът на менюто показва коя настройка е отворена в момента.
-  // Панелите се търсят при всеки избор, защото други скриптове (bindings.js) добавят свои.
-  const settingsMenuButton = settingsMenu.querySelector('[data-settings-menu-btn]');
-
+  // --- МЕНЮТАТА НА КОЛОНИТЕ ---
+  // Всяка колона („Подсветка“ и „Бутони“) има свое меню и свои панели; бутонът показва отворената секция.
+  // Панелите се търсят при всеки избор, защото други скриптове (bindings.js, logitech.js) добавят свои.
   const selectTab = (tabToSelect) => {
-    settingsTabs.forEach((tab) => {
+    const column = tabToSelect.closest('.settings-menu');
+    column.querySelectorAll('.settings-tab').forEach((tab) => {
       const isSelected = tab === tabToSelect;
       tab.classList.toggle('active', isSelected);
       if (isSelected) tab.setAttribute('aria-current', 'true');
       else tab.removeAttribute('aria-current');
     });
-    panels.querySelectorAll('.settings-panel').forEach((panel) => {
+    column.querySelectorAll('.settings-panel').forEach((panel) => {
       panel.hidden = panel.dataset.panel !== tabToSelect.dataset.tab;
     });
-    if (settingsMenuButton) {
-      settingsMenuButton.textContent = `Всички настройки: ${tabToSelect.textContent} ▾`;
+    const menuButton = column.querySelector('[data-settings-menu-btn]');
+    if (menuButton) {
+      menuButton.textContent = `${menuButton.dataset.menuTitle || 'Всички настройки'}: ${tabToSelect.textContent} ▾`;
     }
   };
 
@@ -218,7 +220,23 @@
     tab.addEventListener('click', () => selectTab(tab));
   });
 
-  selectTab(settingsTabs[0]);
+  document.querySelectorAll('.settings-menu').forEach((column) => {
+    const firstTab = column.querySelector('.settings-tab');
+    if (firstTab) selectTab(firstTab);
+  });
+
+  // Кликовете върху устройството отиват към колоната, ползвана последно (bindings.js слуша събитието)
+  const columns = document.querySelectorAll('.settings-column');
+  const setActiveColumn = (activeColumn) => {
+    if (activeColumn.classList.contains('is-active')) return;
+    columns.forEach((column) => column.classList.toggle('is-active', column === activeColumn));
+    document.dispatchEvent(new CustomEvent('settings-column-change', { detail: { column: activeColumn.dataset.column } }));
+  };
+  columns.forEach((column) => {
+    column.addEventListener('pointerdown', () => setActiveColumn(column));
+    column.addEventListener('focusin', () => setActiveColumn(column));
+  });
+  if (columns.length > 0) setActiveColumn(columns[0]);
 
   // --- ИЗБОР НА ЗОНИ ---
   const selected = new Set();
@@ -281,7 +299,7 @@
 
   colorInput.addEventListener('input', () => applyColor(colorInput.value.toLowerCase()));
 
-  panels.addEventListener('click', (event) => {
+  const onSettingsClick = (event) => {
     const swatch = event.target.closest('.color-swatch');
     if (swatch) {
       applyColor(swatch.dataset.color);
@@ -318,7 +336,10 @@
       device.dispatchEvent(new CustomEvent('profilereset', { detail: { profile: state.active } }));
       render();
     }
-  });
+  };
+
+  panels.addEventListener('click', onSettingsClick);
+  if (profilesBar !== panels) profilesBar.addEventListener('click', onSettingsClick);
 
   effectInputs.forEach((input) => {
     input.addEventListener('change', () => update((profile) => {

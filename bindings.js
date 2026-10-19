@@ -4,8 +4,9 @@
 // „Изпробвай“ само показва действието (а медийните действия пускат демо мелодия).
 (() => {
   const device = document.querySelector('.keyboard, .mouse-svg');
-  const panels = document.querySelector('.settings-panels');
   const bindingsTab = document.querySelector('.settings-tab[data-tab="5"]');
+  const bindingsColumn = bindingsTab?.closest('.settings-menu');
+  const panels = bindingsColumn?.querySelector('.settings-panels') || document.querySelector('.settings-panels');
   const settingsTabs = document.querySelectorAll('.settings-tab');
 
   if (!device || !panels || !bindingsTab) return;
@@ -402,7 +403,7 @@
   const panel = document.createElement('div');
   panel.className = 'settings-panel';
   panel.dataset.panel = bindingsTab.dataset.tab;
-  panel.hidden = true;
+  panel.hidden = !bindingsTab.classList.contains('active');
   panel.innerHTML = `
     <p class="binding-profile" id="binding-profile"></p>
     <p class="binding-target" id="binding-target"></p>
@@ -605,9 +606,14 @@
     }
   };
 
-  settingsTabs.forEach((tab) => {
-    tab.addEventListener('click', () => setMode(tab === bindingsTab));
-  });
+  // Кликовете върху устройството избират бутон, когато „Функции на бутоните“ е отворена
+  // в колоната, ползвана последно (иначе избират зони за подсветката)
+  const updateMode = () => {
+    const columnIsActive = !bindingsColumn?.classList.contains('settings-column') || bindingsColumn.classList.contains('is-active');
+    setMode(bindingsTab.classList.contains('active') && columnIsActive);
+  };
+  settingsTabs.forEach((tab) => tab.addEventListener('click', updateMode));
+  document.addEventListener('settings-column-change', updateMode);
 
   // Смяна на профила показва неговите функции; нулирането на профила изтрива и тях
   device.addEventListener('profilechange', () => {
