@@ -102,8 +102,13 @@
         <span>Какъв цвят свети Fn?</span>
         ${FN_CANDIDATES.map((candidate) => `<button type="button" class="panel-btn fn-choice" data-fn-zone="${candidate.zone}"
           style="--choice: ${candidate.color}">${candidate.name}</button>`).join('')}
-        <button type="button" class="panel-btn" data-fn-zone="0" data-fn-state="off">Fn е угаснал</button>
-        <button type="button" class="panel-btn" data-fn-zone="0" data-fn-state="white">Fn свети бяло</button>
+        <button type="button" class="panel-btn" data-fn-zone="0">В нито един цвят</button>
+      </div>
+      <div class="save-bar__row fn-finder" data-fn-search hidden>
+        <span id="fn-search-question"></span>
+        <button type="button" class="panel-btn panel-btn--primary" data-fn-answer="yes">Да</button>
+        <button type="button" class="panel-btn" data-fn-answer="no">Не</button>
+        <button type="button" class="panel-btn" data-fn-answer="cancel">Откажи</button>
       </div>
       <div class="save-bar__row device-timers" data-timers hidden>
         <label class="device-timer">Затъмняване след
@@ -125,6 +130,8 @@
   const connectedGroup = bar.querySelector('[data-connected]');
   const timersRow = bar.querySelector('[data-timers]');
   const fnFinder = bar.querySelector('[data-fn-finder]');
+  const fnSearch = bar.querySelector('[data-fn-search]');
+  const fnQuestion = bar.querySelector('#fn-search-question');
   const idleSelect = bar.querySelector('#kb-idle');
   const sleepSelect = bar.querySelector('#kb-sleep');
   const liveInput = bar.querySelector('#kb-live');
@@ -274,13 +281,18 @@
   const sendPerKeyFrame = async (lighting, percent) => {
     const [r, g, b] = rgb(scaleColor(lighting.color, percent));
     await send(FEATURES.PER_KEY_LIGHTING, 0x50, [1, 111, r, g, b]);
-    // setRange иска first < last, затова зона на Fn извън 1–111 се боядисва поотделно
-    if (fnZone > 111) await send(FEATURES.PER_KEY_LIGHTING, 0x60, [r, g, b, fnZone]);
+    // setRange иска first < last, а зона, която клавиатурата не обявява, може да спре цяла група –
+    // затова зона на Fn извън 1–111 се боядисва поотделно
+    const fnApart = fnZone > 111;
+    if (fnApart) {
+      const fnColor = lighting.leds.Fn ? rgb(scaleColor(lighting.leds.Fn, percent)) : [r, g, b];
+      await send(FEATURES.PER_KEY_LIGHTING, 0x60, [...fnColor, fnZone]).catch(() => {});
+    }
 
     const groups = new Map();
     Object.entries(lighting.leds).forEach(([keyId, color]) => {
       const zone = zoneOf(keyId);
-      if (!zone || color === lighting.color) return;
+      if (!zone || color === lighting.color || (fnApart && keyId === 'Fn')) return;
       if (!groups.has(color)) groups.set(color, []);
       groups.get(color).push(zone);
     });
@@ -647,28 +659,109 @@
     setLog('Клавиатурата е угаснала, освен няколко зони в различни цветове. Натисни цвета, в който свети Fn.');
   };
 
+  // --- ПЪЛНО ТЪРСЕНЕ НА Fn ПО ПОЛОВИНИ ---
+  // Светват половината от всички възможни зони (1–254) в зелено; според отговора „свети ли Fn“ остава
+  // едната половина. След ~8 въпроса остава една зона, която се проверява сама. Необявените зони се
+  // пращат поотделно, защото клавиатурата може да откаже цялата група заради една непозната зона.
+  const SEARCH_COLOR = [0x00, 0xe6, 0x76];
+  let searchZones = [];
+  let confirming = false;
+  let litZones = [];
+
+  // Цвят за зони поотделно – необявените може да бъдат отказани една по една, без да спират останалите
+  const paintZones = async (zones, color) => {
+    const known = zones.filter((zone) => hasZone(zoneBitmap, zone));
+    for (let start = 0; start < known.length; start += 13) {
+      await send(FEATURES.PER_KEY_LIGHTING, 0x60, [...color, ...known.slice(start, start + 13)]);
+    }
+    for (const zone of zones.filter((candidate) => !hasZone(zoneBitmap, candidate))) {
+      await send(FEATURES.PER_KEY_LIGHTING, 0x60, [...color, zone]).catch(() => {});
+    }
+  };
+
+  // Клавиатурата пази цвета на зона до следващ запис, затова зелените от предишната стъпка се гасят изрично
+  const paintSearch = async (zones) => {
+    await send(FEATURES.RGB_EFFECTS, 0x10, [0x00, effectIndexes.get(0x01), 0, 0, 0, 0x02, 0, 0, 0, 0, 0, 0, 0x01]);
+    await send(FEATURES.PER_KEY_LIGHTING, 0x50, [1, 111, 0, 0, 0]);
+    if (hasZone(zoneBitmap, 254)) await send(FEATURES.PER_KEY_LIGHTING, 0x60, [0, 0, 0, 254]);
+    await paintZones(litZones.filter((zone) => zone > 111 && !zones.includes(zone)), [0, 0, 0]);
+    await paintZones(zones, SEARCH_COLOR);
+    await send(FEATURES.PER_KEY_LIGHTING, 0x70, [0x00, 0x00, 0x00, 0x00, 0x00]);
+    litZones = zones;
+  };
+
+  const askSearch = async () => {
+    fnSearch.hidden = true;
+    if (searchZones.length === 1) {
+      confirming = true;
+      await paintSearch(searchZones);
+      fnQuestion.textContent = `Последна проверка (зона ${searchZones[0]}): свети ли Fn в зелено?`;
+    } else {
+      confirming = false;
+      await paintSearch(searchZones.slice(0, Math.ceil(searchZones.length / 2)));
+      const steps = Math.ceil(Math.log2(searchZones.length));
+      fnQuestion.textContent = `Свети ли Fn в зелено? (остават около ${steps} въпроса)`;
+    }
+    fnSearch.hidden = false;
+    setLog('Гледай само клавиша Fn – другите зелени клавиши нямат значение.');
+  };
+
+  const startSearch = async () => {
+    fnFinder.hidden = true;
+    if (!claimed) await claim();
+    findingFn = true;
+    litZones = Array.from({ length: 143 }, (_, index) => index + 112); // всички извън 1–111 – за сигурност угасени
+    searchZones = Array.from({ length: 254 }, (_, index) => index + 1);
+    await askSearch();
+  };
+
+  const answerSearch = async (answer) => {
+    if (answer === 'cancel') {
+      cancelFindFn();
+      if (keyboard) await applyLighting();
+      setLog('Търсенето на Fn е спряно.');
+      return;
+    }
+    const lit = answer === 'yes';
+    if (confirming) {
+      if (lit) {
+        await chooseFn(searchZones[0]);
+      } else {
+        cancelFindFn();
+        diagnostics.fnAnswer = 'няма своя зона';
+        if (keyboard) await applyLighting();
+        setLog('Fn не светна в нито една зона – на G515 той няма светлина, която може да се оцветява отделно.');
+      }
+      return;
+    }
+    const half = Math.ceil(searchZones.length / 2);
+    searchZones = lit ? searchZones.slice(0, half) : searchZones.slice(half);
+    await askSearch();
+  };
+
   const cancelFindFn = () => {
     fnFinder.hidden = true;
+    fnSearch.hidden = true;
     findingFn = false;
   };
 
-  const chooseFn = async (zone, state) => {
+  const chooseFn = async (zone) => {
+    // „В нито един цвят“ – търсене във всички възможни зони
+    if (!zone) {
+      await startSearch();
+      return;
+    }
     cancelFindFn();
-    diagnostics.fnAnswer = zone || state;
-    if (zone) {
-      fnZone = zone;
-      try {
-        localStorage.setItem(FN_KEY, String(zone));
-      } catch {
-        // Изборът важи само до презареждане
-      }
+    diagnostics.fnAnswer = zone;
+    fnZone = zone;
+    try {
+      localStorage.setItem(FN_KEY, String(zone));
+    } catch {
+      // Изборът важи само до презареждане
     }
     diagnostics.fnZone = fnZone;
     if (keyboard) await applyLighting();
-    const notFound = state === 'white'
-      ? 'Fn свети бяло – значи има своя зона извън пробваните. Прати ми „Техническа информация“.'
-      : 'Fn угасна с всички клавиши – значи е в зона, която е боядисана заедно с друг клавиш. Прати ми „Техническа информация“.';
-    setLog(zone ? 'Fn е намерен – вече се оцветява като останалите клавиши.' : notFound);
+    setLog(`Fn е намерен (зона ${zone}) – вече се оцветява като останалите клавиши.`);
   };
 
   // automatic: при отваряне на страницата или включване – тихо, само за G515
@@ -856,7 +949,9 @@
     const action = event.target.closest('[data-device-action]')?.dataset.deviceAction;
     if (action) actions[action]();
     const fnChoice = event.target.closest('[data-fn-zone]');
-    if (fnChoice) run(() => chooseFn(Number(fnChoice.dataset.fnZone), fnChoice.dataset.fnState))();
+    if (fnChoice) run(() => chooseFn(Number(fnChoice.dataset.fnZone)))();
+    const fnAnswer = event.target.closest('[data-fn-answer]')?.dataset.fnAnswer;
+    if (fnAnswer) run(() => answerSearch(fnAnswer))();
   });
 
   [idleSelect, sleepSelect].forEach((select) => {
