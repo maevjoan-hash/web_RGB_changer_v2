@@ -33,8 +33,9 @@ if (canvas) {
     }
   }
 
-  window.addEventListener('resize', resize);
-  resize();
+  // При „намалено движение“ в системата звездите се рисуват веднъж и остават неподвижни
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+  let animationId = null;
 
   function drawStars() {
     ctx.clearRect(0, 0, width, height);
@@ -45,6 +46,8 @@ if (canvas) {
       ctx.fillStyle = `rgba(255, 255, 255, ${star.opacity})`;
       ctx.fill();
 
+      if (reducedMotion.matches) return;
+
       star.y -= star.speed;
 
       if (star.y < 0) {
@@ -53,9 +56,19 @@ if (canvas) {
       }
     });
 
-    requestAnimationFrame(drawStars);
+    animationId = reducedMotion.matches ? null : requestAnimationFrame(drawStars);
   }
 
+  window.addEventListener('resize', () => {
+    resize();
+    // Смяната на размера изчиства платното, затова неподвижният фон се рисува отново
+    if (animationId === null) drawStars();
+  });
+  reducedMotion.addEventListener('change', () => {
+    if (animationId === null) drawStars();
+  });
+
+  resize();
   drawStars();
 }
 

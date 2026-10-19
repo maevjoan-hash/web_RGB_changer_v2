@@ -105,6 +105,18 @@ const DEFAULT_KEYBOARD_LAYOUT = '75';
   }
 
   displayArea.append(keyboard);
+
+  // Подсказка, когато клавиатурата е по-широка от екрана и трябва да се плъзга
+  const scrollHint = document.createElement('p');
+  scrollHint.className = 'keyboard-scroll-hint';
+  scrollHint.textContent = '← Плъзни настрани, за да видиш цялата клавиатура →';
+  displayArea.closest('.device-preview').after(scrollHint);
+
+  const updateScrollHint = () => {
+    scrollHint.hidden = displayArea.scrollWidth <= displayArea.clientWidth;
+  };
+  new ResizeObserver(updateScrollHint).observe(displayArea);
+
   document.title = `Конфигуратор на клавиатура - ${layout.label}`;
 
   if (layoutOptions) {
