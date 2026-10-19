@@ -48,7 +48,7 @@
   const leds = [];
 
   if (isKeyboard) {
-    device.querySelectorAll('.key').forEach((el, index) => leds.push({ id: `k${index}`, el }));
+    device.querySelectorAll('.key').forEach((el, index) => leds.push({ id: el.dataset.keyId || `k${index}`, el }));
   } else {
     device.querySelectorAll('.mouse-btn-group').forEach((el) => leds.push({ id: el.dataset.btn, el }));
     device.querySelectorAll('.mouse-rgb-strip, .mouse-gaming-logo, .mouse-logo-ring').forEach((el) => {
