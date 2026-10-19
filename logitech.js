@@ -459,14 +459,41 @@ const LogitechButtons = (() => {
     }
 
     const validDpi = new Set(dpiValues || []);
-    const dpi = DPI_LAYOUTS.find(({ offset, stride, defaultIndexByte }) => {
-      const entries = Array.from({ length: 5 }, (_, slot) => factory[offset + slot * stride] | (factory[offset + slot * stride + 1] << 8));
-      const used = entries.filter((value) => value !== 0 && value !== 0xffff);
-      return used.length > 0 && used.every((value) => validDpi.has(value)) && factory[defaultIndexByte] < 5;
-    }) || null;
+    const known = DPI_LAYOUTS.find((layout) => {
+      const used = readDpiStages(factory, layout).filter((value) => !isUnusedDpi(value));
+      return used.length > 0 && used.every((value) => validDpi.has(value)) && factory[layout.defaultIndexByte] < 5;
+    });
 
-    return { buttons, dpi };
+    return { buttons, dpi: known || scanDpiLayout(factory, validDpi, buttons ?? 64) };
   };
+
+  const isUnusedDpi = (value) => value === 0 || value === 0xffff;
+
+  // 5 нива на DPI (little-endian); при подредба с Y, Y е 2 байта след X
+  function readDpiStages(bytes, { offset, stride }) {
+    return Array.from({ length: 5 }, (_, slot) => bytes[offset + slot * stride] | (bytes[offset + slot * stride + 1] << 8));
+  }
+
+  // Непознат формат: търси във фабричния профил (преди бутоните) поредица от нива, които изглеждат
+  // като фабрични DPI нива – поддържани от мишката, възходящи (напр. 400, 800, 1600…), празните само накрая.
+  // Индексът на нивото по подразбиране тогава не е известен и не се променя.
+  function scanDpiLayout(factory, validDpi, limit) {
+    for (const stride of [2, 4, 5, 6]) {
+      for (let offset = 0; offset + stride * 4 + 2 <= limit; offset += 1) {
+        const stages = readDpiStages(factory, { offset, stride });
+        const used = stages.filter((value) => !isUnusedDpi(value));
+        const isPrefix = stages.slice(0, used.length).every((value) => !isUnusedDpi(value));
+        const isAscending = used.every((value, index) => index === 0 || value > used[index - 1]);
+        if (used.length >= 2 && isPrefix && isAscending && used.every((value) => validDpi.has(value))) {
+          const hasY = stride >= 4 && used.every((value, slot) => (
+            (factory[offset + slot * stride + 2] | (factory[offset + slot * stride + 3] << 8)) === value
+          ));
+          return { offset, stride, hasY, defaultIndexByte: null };
+        }
+      }
+    }
+    return null;
+  }
 
   const hex = (bytes) => [...bytes].map((byte) => byte.toString(16).padStart(2, '0')).join(' ');
   const BUTTON_NAMES = ['Ляв бутон', 'Десен бутон', 'Среден бутон (колелце)', 'Страничен назад', 'Страничен напред', 'DPI бутон'];
@@ -500,12 +527,16 @@ const LogitechButtons = (() => {
       <p class="device-summary" id="device-summary"></p>
 
       <div class="device-block" id="device-dpi-block" hidden>
-        <label class="field">
-          <span class="field__label">DPI (чувствителност) <span id="device-dpi-range"></span></span>
+        <p class="field__label">DPI (чувствителност) <span id="device-dpi-range"></span> · сега: <span id="device-dpi-current"></span></p>
+        <p class="settings-hint" id="device-dpi-stages-hint" hidden></p>
+        <div class="dpi-stages" id="device-dpi-stages" hidden></div>
+        <label class="field" id="device-dpi-single">
+          <span class="field__label">Нов DPI</span>
           <input type="number" class="field__select" id="device-dpi" />
         </label>
         <div class="panel-actions">
-          <button type="button" class="panel-btn" data-device-action="apply-dpi">Приложи DPI веднага</button>
+          <button type="button" class="panel-btn" data-device-action="apply-dpi">Приложи веднага</button>
+          <button type="button" class="panel-btn" data-device-action="write-dpi" id="device-write-dpi" hidden>Запиши DPI нивата в мишката</button>
         </div>
       </div>
 
@@ -551,6 +582,11 @@ const LogitechButtons = (() => {
   const dpiBlock = panel.querySelector('#device-dpi-block');
   const dpiInput = panel.querySelector('#device-dpi');
   const dpiRange = panel.querySelector('#device-dpi-range');
+  const dpiCurrent = panel.querySelector('#device-dpi-current');
+  const dpiStages = panel.querySelector('#device-dpi-stages');
+  const dpiStagesHint = panel.querySelector('#device-dpi-stages-hint');
+  const dpiSingle = panel.querySelector('#device-dpi-single');
+  const writeDpiButton = panel.querySelector('#device-write-dpi');
   const buttonsBlock = panel.querySelector('#device-buttons-block');
   const buttonsList = panel.querySelector('#device-buttons');
   const planTitle = panel.querySelector('#device-plan-title');
@@ -660,6 +696,54 @@ const LogitechButtons = (() => {
     ]));
   };
 
+  // Нивата на DPI от активния профил; радио бутонът избира нивото по подразбиране (и за „Приложи веднага“)
+  const renderDpi = () => {
+    const layout = onboard?.layout.dpi;
+    const hasStages = Boolean(dpiCaps && layout);
+    dpiStages.hidden = !hasStages;
+    dpiStagesHint.hidden = !hasStages;
+    dpiSingle.hidden = hasStages;
+    writeDpiButton.hidden = !hasStages;
+    if (!hasStages) return;
+
+    dpiStagesHint.textContent = 'Бутонът DPI на мишката сменя тези нива. Празно поле = нивото е изключено. ' +
+      (layout.defaultIndexByte !== null
+        ? 'Кръгчето отбелязва нивото по подразбиране.'
+        : 'Кръгчето избира нивото за „Приложи веднага“ (нивото по подразбиране се определя от мишката).');
+
+    const source = onboard.userEntry ? onboard.profile : onboard.factory;
+    const stages = readDpiStages(source, layout);
+    const current = Number(dpiCurrent.dataset.dpi);
+    let selected = layout.defaultIndexByte !== null ? source[layout.defaultIndexByte] : stages.indexOf(current);
+    if (selected < 0 || selected > 4 || isUnusedDpi(stages[selected])) selected = 0;
+
+    dpiStages.replaceChildren(...stages.map((value, slot) => {
+      const row = document.createElement('label');
+      row.className = 'dpi-stage';
+      row.innerHTML = `
+        <input type="radio" name="dpi-default" value="${slot}" />
+        <span>Ниво ${slot + 1}</span>
+        <input type="number" class="field__select" data-dpi-stage="${slot}" placeholder="изключено" />
+      `;
+      const input = row.querySelector('[data-dpi-stage]');
+      input.min = dpiInput.min;
+      input.max = dpiInput.max;
+      input.step = dpiInput.step;
+      input.value = isUnusedDpi(value) ? '' : value;
+      row.querySelector('[type="radio"]').checked = slot === selected;
+      return row;
+    }));
+  };
+
+  const selectedStage = () => Number(dpiStages.querySelector('[name="dpi-default"]:checked')?.value ?? 0);
+
+  const showCurrentDpi = async () => {
+    const { dpi } = await mouse.readDpi();
+    dpiCurrent.dataset.dpi = dpi;
+    dpiCurrent.textContent = `${dpi} DPI`;
+    return dpi;
+  };
+
   // Чете профилите от паметта. Ако потребителски профил няма, работи с копие на фабричния.
   const loadOnboard = async () => {
     const info = await mouse.readOnboardInfo();
@@ -711,6 +795,8 @@ const LogitechButtons = (() => {
       dpiInput.step = values.length > 1 ? values[1] - values[0] : 1;
       dpiInput.value = dpi;
       dpiRange.textContent = `(${values[0]}–${values[values.length - 1]})`;
+      dpiCurrent.dataset.dpi = dpi;
+      dpiCurrent.textContent = `${dpi} DPI`;
     }
 
     diagnostics = {
@@ -730,7 +816,8 @@ const LogitechButtons = (() => {
           onboardMessage = `Профилите в паметта са във формат ${onboard.info.format}, който още не е разпознат. ` +
             'Натисни „Копирай техническа информация“ и я изпрати, за да се добави поддръжка.';
         } else if (!onboard.layout.dpi && dpiCaps) {
-          onboardMessage = 'Бутоните ще се записват, но мястото на DPI в профила не е разпознато, затова DPI се прилага само веднага.';
+          onboardMessage = 'Бутоните ще се записват, но мястото на DPI в профила не е разпознато, затова DPI се прилага само веднага. ' +
+            'Натисни „Копирай техническа информация“ и я изпрати, за да се добави.';
         }
       } catch (error) {
         console.error(error);
@@ -751,6 +838,7 @@ const LogitechButtons = (() => {
     connectButton.hidden = true;
     disconnectButton.hidden = false;
     renderDevice();
+    renderDpi();
     setLog('Мишката е свързана.');
   };
 
@@ -769,39 +857,76 @@ const LogitechButtons = (() => {
     dpiCaps.values[0]
   );
 
+  // Прилага DPI веднага (без запис в паметта) и проверява дали мишката го е приела
   const applyDpi = async () => {
-    const dpi = nearestDpi(Number(dpiInput.value));
-    dpiInput.value = dpi;
+    const hasStages = !dpiStages.hidden;
+    const input = hasStages ? dpiStages.querySelector(`[data-dpi-stage="${selectedStage()}"]`) : dpiInput;
+    if (!input.value) throw new Error('Избраното ниво е изключено. Въведи DPI за него.');
+
+    const dpi = nearestDpi(Number(input.value));
+    input.value = dpi;
     await mouse.setDpi(dpi, dpiCaps);
-    setLog(`DPI е зададен на ${dpi}. За да остане и след рестарт на мишката, натисни „Запиши в мишката“.`);
+    const actual = await showCurrentDpi();
+
+    if (actual !== dpi) {
+      setLog(onboard?.mode === MODE_ONBOARD
+        ? 'Мишката е в режим „профил от паметта“ и използва DPI от профила. Натисни „Запиши DPI нивата в мишката“.'
+        : `Мишката не прие ${dpi} DPI (отчита ${actual}).`, true);
+    } else {
+      setLog(hasStages
+        ? `DPI е ${dpi}. За да остане и след рестарт, натисни „Запиши DPI нивата в мишката“.`
+        : `DPI е ${dpi}. Мястото на DPI в профила не е разпознато, затова след рестарт на мишката ще се върне.`);
+    }
+  };
+
+  // Чете нивата от полетата: празно = изключено, останалите се закръглят до поддържана стойност
+  const readStageInputs = () => {
+    const stages = [...dpiStages.querySelectorAll('[data-dpi-stage]')].map((input) => {
+      if (!input.value) return 0;
+      const dpi = nearestDpi(Number(input.value));
+      input.value = dpi;
+      return dpi;
+    });
+    if (!stages[selectedStage()]) throw new Error('Отбелязаното ниво не може да е изключено.');
+    return stages;
   };
 
   // Записва профила (бутони + DPI) и директорията, проверява записаното и включва режима „профил от паметта“
-  const writeProfile = async ({ factoryButtons = false } = {}) => {
+  // buttons: 'plan' (функциите от сайта), 'factory' (фабричните) или 'keep' (без промяна)
+  const writeProfile = async ({ buttons = 'plan', dpi = true } = {}) => {
     const { info, factory, userEntry, layout } = onboard;
-    if (layout.buttons === null) throw new Error('Форматът на профила не е разпознат, затова нищо не е записано.');
+    if (buttons !== 'keep' && layout.buttons === null) {
+      throw new Error('Форматът на профила не е разпознат, затова нищо не е записано.');
+    }
 
     const profile = (userEntry ? onboard.profile : factory).slice();
     const { plan, skipped } = buildPlan();
 
-    for (let index = 0; index < info.buttons; index += 1) {
-      const offset = layout.buttons + index * 4;
-      const entry = factoryButtons ? null : plan.get(index);
-      const bytes = !entry || entry.encoded === 'factory' ? factory.slice(offset, offset + 4) : entry.encoded;
-      profile.set(bytes, offset);
+    if (buttons !== 'keep') {
+      for (let index = 0; index < info.buttons; index += 1) {
+        const offset = layout.buttons + index * 4;
+        const entry = buttons === 'plan' ? plan.get(index) : null;
+        const bytes = !entry || entry.encoded === 'factory' ? factory.slice(offset, offset + 4) : entry.encoded;
+        profile.set(bytes, offset);
+      }
     }
 
-    if (dpiCaps && layout.dpi && !factoryButtons) {
-      // DPI по подразбиране: 5 стойности (little-endian), индексът им е в layout.dpi.defaultIndexByte
-      const dpi = nearestDpi(Number(dpiInput.value));
+    const writeDpi = dpi && dpiCaps && layout.dpi;
+    const stages = writeDpi ? readStageInputs() : null;
+    const chosenStage = selectedStage();
+    if (writeDpi) {
+      // 5 нива (little-endian); при подредба с Y се записва и Y, а LOD остава какъвто е
       const { offset, stride, hasY, defaultIndexByte } = layout.dpi;
-      const at = offset + Math.min(profile[defaultIndexByte], 4) * stride;
-      profile[at] = dpi & 0xff;
-      profile[at + 1] = dpi >> 8;
-      if (hasY) {
-        profile[at + 2] = dpi & 0xff;
-        profile[at + 3] = dpi >> 8;
-      }
+      stages.forEach((value, slot) => {
+        const at = offset + slot * stride;
+        profile[at] = value & 0xff;
+        profile[at + 1] = value >> 8;
+        if (hasY) {
+          profile[at + 2] = value & 0xff;
+          profile[at + 3] = value >> 8;
+        }
+      });
+      if (defaultIndexByte !== null) profile[defaultIndexByte] = chosenStage;
     }
 
     LogitechHidpp.withCrc(profile);
@@ -821,11 +946,21 @@ const LogitechButtons = (() => {
     }
 
     await mouse.setMode(MODE_ONBOARD);
+    if (writeDpi) await mouse.setDpi(stages[chosenStage], dpiCaps).catch(() => {});
     await loadOnboard();
+    if (dpiCaps) await showCurrentDpi();
     renderDevice();
-    setLog(factoryButtons
-      ? 'Фабричните бутони са върнати в мишката.'
-      : `Записано в мишката.${skipped.length ? ` Пропуснати: ${skipped.length} (виж списъка).` : ''}`);
+    renderDpi();
+
+    if (buttons === 'factory') {
+      setLog('Фабричните бутони са върнати в мишката.');
+    } else if (buttons === 'keep') {
+      setLog(layout.dpi.defaultIndexByte !== null
+        ? `DPI нивата са записани в мишката (по подразбиране: ниво ${chosenStage + 1}).`
+        : 'DPI нивата са записани в мишката. С бутона DPI превключваш между тях.');
+    } else {
+      setLog(`Записано в мишката.${skipped.length ? ` Пропуснати: ${skipped.length} (виж списъка).` : ''}`);
+    }
   };
 
   const run = (action) => async () => {
@@ -862,7 +997,8 @@ const LogitechButtons = (() => {
     disconnect: run(disconnect),
     'apply-dpi': run(applyDpi),
     write: run(() => writeProfile()),
-    factory: run(() => writeProfile({ factoryButtons: true }))
+    'write-dpi': run(() => writeProfile({ buttons: 'keep' })),
+    factory: run(() => writeProfile({ buttons: 'factory', dpi: false }))
   };
 
   panel.addEventListener('click', (event) => {
