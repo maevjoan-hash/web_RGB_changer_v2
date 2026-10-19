@@ -1249,3 +1249,25 @@ button.layout-option {
   display: none;
 }
 
+
+.device-timers {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.device-timers[hidden] {
+  display: none;
+}
+
+.device-timer {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 0.9rem;
+}
+
+.device-timer .field__select {
+  width: auto;
+}
