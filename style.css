@@ -61,8 +61,8 @@ body {
 .homepage.app {
   width: min(860px, 94vw);
   min-height: 100vh;
-  justify-content: center;
-  padding: 40px 20px;
+  justify-content: flex-start;
+  padding: 28px 20px 40px;
 }
 
 .app-header {
@@ -71,6 +71,10 @@ body {
   justify-content: space-between;
   align-items: center;
   gap: 12px;
+}
+
+#connected-devices-btn {
+  margin-left: auto;
 }
 
 .back-button {
@@ -189,6 +193,12 @@ body {
   display: flex;
   justify-content: flex-start;
   align-items: center;
+}
+
+/* На началната страница картите заемат мястото под хедъра и са центрирани в него */
+.homepage .device-cards {
+  flex: 1;
+  align-content: center;
 }
 
 .device-cards {
