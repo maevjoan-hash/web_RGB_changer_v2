@@ -1,60 +1,106 @@
 // --- ПОДРЕДБИ НА КЛАВИАТУРИТЕ ---
+// Размерите са в units (u), както при истинските клавиатури: 1u е един обикновен клавиш
+// (19,05 мм). Ширините следват стандартния ANSI размер: Tab 1.5u, Caps 1.75u, Enter 2.25u,
+// ляв Shift 2.25u, десен Shift 2.75u, модификатори 1.25u, интервал 6.25u.
+//
 // Всеки ред е низ от елементи, разделени с интервал:
-//   "Q"       – обикновен клавиш
-//   "Esc:esc" – клавиш с размер (класът става key--esc)
-//   "_"       – празно място между клавиши
-//   "__"      – празен ред, който пази височината в секциите
-const MAIN_ROWS = [
-  'Esc:esc _ F1 F2 F3 F4 _ F5 F6 F7 F8 _ F9 F10 F11 F12',
-  '` 1 2 3 4 5 6 7 8 9 0 - = Backspace:wide',
-  'Tab:wide Q W E R T Y U I O P [ ] \\:wide',
-  "Caps:caps A S D F G H J K L ; ' Enter:enter",
-  'Shift:shift Z X C V B N M , . / Shift:shift',
-  'Ctrl:mod Win:mod Alt:mod Space:space Alt:mod Fn:mod Ctrl:mod'
+//   "Q"       – клавиш 1u
+//   "Tab:1.5" – клавиш с ширина 1.5u
+//   "+:1x2"   – клавиш 1u широк и 2u висок (numpad + и Enter)
+//   "_0.5"    – празно място 0.5u
+// Ред, записан като { gap: 0.5, keys: '…' }, започва с допълнително разстояние отгоре.
+const F_ROW = 'Esc _1 F1 F2 F3 F4 _0.5 F5 F6 F7 F8 _0.5 F9 F10 F11 F12';
+const NUMBER_ROW = '` 1 2 3 4 5 6 7 8 9 0 - = Backspace:2';
+const TAB_ROW = 'Tab:1.5 Q W E R T Y U I O P [ ] \\:1.5';
+const CAPS_ROW = "Caps:1.75 A S D F G H J K L ; ' Enter:2.25";
+const SHIFT_ROW = 'Shift:2.25 Z X C V B N M , . / Shift:2.75';
+const BOTTOM_ROW = 'Ctrl:1.25 Win:1.25 Alt:1.25 Space:6.25 Alt:1.25 Fn:1.25 Menu:1.25 Ctrl:1.25';
+
+// Пълноразмерна клавиатура: основен блок 15u, навигация 3u и numpad 4u с разстояния 0.25u
+const FULL_SIZE_ROWS = [
+  `${F_ROW} _0.25 PrtSc ScrLk Pause`,
+  { gap: 0.5, keys: `${NUMBER_ROW} _0.25 Ins Home PgUp _0.25 Num / * -` },
+  `${TAB_ROW} _0.25 Del End PgDn _0.25 7 8 9 +:1x2`,
+  `${CAPS_ROW} _3.5 4 5 6`,
+  `${SHIFT_ROW} _1.25 ↑ _1.25 1 2 3 Enter:1x2`,
+  `${BOTTOM_ROW} _0.25 ← ↓ → _0.25 0:2 .`
 ];
-
-const NAV_ROWS = ['PrtSc ScrLk Pause', 'Ins Home PgUp', 'Del End PgDn', '__', '_ ↑ _', '← ↓ →'];
-
-const NUMPAD_ROWS = ['Num / * -', '7 8 9 +', '4 5 6 +', '1 2 3 Ent', '0:wide . Ent'];
 
 // storageId пази имената на старите отделни страници, за да не се губят запазените RGB настройки
 const KEYBOARD_LAYOUTS = {
   60: {
     label: '60%',
     storageId: 'keyboard-60.html',
-    rows: [
-      'Esc:esc 1 2 3 4 5 6 7 8 9 0 - = Backspace:wide',
-      ...MAIN_ROWS.slice(2, 5),
-      'Ctrl:mod Win:mod Alt:mod Space:space Alt:mod Fn:mod Menu:mod Ctrl:mod'
-    ]
+    rows: [NUMBER_ROW.replace('`', 'Esc'), TAB_ROW, CAPS_ROW, SHIFT_ROW, BOTTOM_ROW]
   },
   75: {
     label: '75%',
     storageId: 'keyboard.html',
-    rows: MAIN_ROWS
+    rows: [
+      'Esc F1 F2 F3 F4 F5 F6 F7 F8 F9 F10 F11 F12 PrtSc Ins Del',
+      { gap: 0.25, keys: `${NUMBER_ROW} PgUp` },
+      `${TAB_ROW} PgDn`,
+      `${CAPS_ROW} Home`,
+      'Shift:2.25 Z X C V B N M , . / Shift:1.75 ↑ End',
+      'Ctrl:1.25 Win:1.25 Alt:1.25 Space:6.25 Alt Fn Ctrl ← ↓ →'
+    ]
   },
   100: {
     label: '100%',
     storageId: 'keyboard-100.html',
-    sections: [
-      ['main', MAIN_ROWS],
-      ['nav', NAV_ROWS],
-      ['numpad', [...NUMPAD_ROWS, '__']]
-    ]
+    rows: FULL_SIZE_ROWS
   },
   120: {
     label: '120%',
     storageId: 'keyboard-120.html',
-    sections: [
-      ['macro', ['G1 G2', 'G3 G4', 'G5 G6', 'G7 G8', 'G9 G10', 'G11 G12', 'G13 G14']],
-      ['main', ['Rec:esc _ F13 F14 F15 F16 _ F17 F18 F19 F20 _ F21 F22 F23 F24', ...MAIN_ROWS]],
-      ['nav', ['M1 M2 M3', ...NAV_ROWS]],
-      ['numpad', ['Prev Play Next Stop', 'Mute Vol- Vol+ RGB', ...NUMPAD_ROWS]]
+    // Макро колона G1–G14 вляво, ред F13–F24, M1–M3 над навигацията и медийни клавиши над numpad-а
+    rows: [
+      'G1 G2 _0.5 Rec _1 F13 F14 F15 F16 _0.5 F17 F18 F19 F20 _0.5 F21 F22 F23 F24 _0.25 M1 M2 M3 _0.25 Prev Play Next Stop',
+      `G3 G4 _0.5 ${FULL_SIZE_ROWS[0]} _0.25 Mute Vol- Vol+ RGB`,
+      ...['G5 G6', 'G7 G8', 'G9 G10', 'G11 G12', 'G13 G14'].map((macroKeys, index) => {
+        const row = FULL_SIZE_ROWS[index + 1];
+        return typeof row === 'string'
+          ? `${macroKeys} _0.5 ${row}`
+          : { ...row, keys: `${macroKeys} _0.5 ${row.keys}` };
+      })
     ]
   }
 };
 
 const DEFAULT_KEYBOARD_LAYOUT = '75';
+
+// Превръща редовете в клавиши с позиция (x, y) и размер (w, h) в units
+const parseKeyboardLayout = (rows) => {
+  const keys = [];
+  let y = 0;
+  let width = 0;
+
+  rows.forEach((row) => {
+    const { gap = 0, keys: tokens } = typeof row === 'string' ? { keys: row } : row;
+    let x = 0;
+    y += gap;
+
+    tokens.split(' ').forEach((token) => {
+      if (token.startsWith('_')) {
+        x += Number(token.slice(1));
+        return;
+      }
+
+      const separator = token.lastIndexOf(':');
+      const label = separator > 0 ? token.slice(0, separator) : token;
+      const [w = 1, h = 1] = separator > 0 ? token.slice(separator + 1).split('x').map(Number) : [];
+
+      keys.push({ label, x, y, w, h });
+      x += w;
+    });
+
+    width = Math.max(width, x);
+    y += 1;
+  });
+
+  const height = Math.max(...keys.map((key) => key.y + key.h));
+  return { keys, width, height };
+};
 
 (() => {
   const displayArea = document.querySelector('[data-keyboard-display]');
@@ -64,46 +110,38 @@ const DEFAULT_KEYBOARD_LAYOUT = '75';
   const requestedLayout = new URLSearchParams(location.search).get('layout');
   const layoutId = Object.hasOwn(KEYBOARD_LAYOUTS, requestedLayout) ? requestedLayout : DEFAULT_KEYBOARD_LAYOUT;
   const layout = KEYBOARD_LAYOUTS[layoutId];
-
-  const renderRow = (row) => {
-    const rowElement = document.createElement('div');
-    rowElement.className = 'keyboard-row';
-
-    row.split(' ').forEach((token) => {
-      const element = document.createElement('div');
-
-      if (token === '_') {
-        element.className = 'key-spacer';
-      } else if (token === '__') {
-        element.className = 'key-spacer-row';
-      } else {
-        const [label, size] = token.split(':');
-        element.className = size ? `key key--${size}` : 'key';
-        element.textContent = label;
-      }
-
-      rowElement.append(element);
-    });
-
-    return rowElement;
-  };
+  const { keys, width, height } = parseKeyboardLayout(layout.rows);
 
   const keyboard = document.createElement('div');
-  keyboard.className = layoutId === DEFAULT_KEYBOARD_LAYOUT ? 'keyboard' : `keyboard keyboard--${layoutId}`;
+  keyboard.className = `keyboard keyboard--${layoutId}`;
   keyboard.dataset.storageId = layout.storageId;
+  keyboard.style.setProperty('--kb-w', width);
+  keyboard.style.setProperty('--kb-h', height);
   keyboard.setAttribute('aria-hidden', 'true');
 
-  if (layout.sections) {
-    layout.sections.forEach(([name, rows]) => {
-      const section = document.createElement('div');
-      section.className = `kb-section kb-section-${name}`;
-      section.append(...rows.map(renderRow));
-      keyboard.append(section);
-    });
-  } else {
-    keyboard.append(...layout.rows.map(renderRow));
-  }
+  const plate = document.createElement('div');
+  plate.className = 'keyboard__plate';
 
+  // Стабилен идентификатор за RGB настройките: етикет + пореден номер при повторение (Shift, Shift#2)
+  const labelCounts = {};
+
+  keys.forEach(({ label, x, y, w, h }) => {
+    labelCounts[label] = (labelCounts[label] || 0) + 1;
+
+    const key = document.createElement('div');
+    key.className = label.length > 4 && w < 1.5 ? 'key key--small' : 'key';
+    key.dataset.keyId = labelCounts[label] > 1 ? `${label}#${labelCounts[label]}` : label;
+    key.style.cssText = `--x: ${x}; --y: ${y}; --w: ${w}; --h: ${h}`;
+
+    const top = document.createElement('span');
+    top.className = 'key__top';
+    top.textContent = label;
+
+    key.append(top);
+    plate.append(key);
+  });
+
+  keyboard.append(plate);
   displayArea.append(keyboard);
 
   // Подсказка, когато клавиатурата е по-широка от екрана и трябва да се плъзга

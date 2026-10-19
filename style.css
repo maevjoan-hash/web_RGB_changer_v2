@@ -234,47 +234,35 @@ body {
   fill: none;
 }
 
-/* min-width пази клавишите достатъчно големи за докосване; на тесен екран клавиатурата се скролва */
+/* --- КЛАВИАТУРА ---
+   Клавишите са позиционирани в units (u) като истинска ANSI клавиатура: --kb-w и --kb-h
+   са размерите на подредбата, а --x, --y, --w, --h на всеки клавиш идват от keyboard-layouts.js.
+   Клавиатурата е между 36px (докосване на телефон) и 50px на unit; на тесен екран се скролва. */
 .keyboard {
+  --case-padding: 18px;
   width: 100%;
-  min-width: 600px;
-  max-width: 780px;
-  min-height: max-content;
+  min-width: calc(var(--kb-w) * 36px + 2 * var(--case-padding));
+  max-width: calc(var(--kb-w) * 50px + 2 * var(--case-padding));
   flex-shrink: 0;
   margin-inline: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding: 14px;
-  background: #2a2e35;
-  border: 2px solid #000000;
-  border-radius: 10px;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 10px 20px rgba(0, 0, 0, 0.5);
+  padding: var(--case-padding);
+  background: linear-gradient(160deg, #2c2442 0%, #17122b 55%, #0e0b1c 100%);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 18px;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.18),
+    inset 0 -3px 8px rgba(0, 0, 0, 0.6),
+    0 0 0 1px rgba(0, 0, 0, 0.6),
+    0 18px 40px rgba(0, 0, 0, 0.55);
 }
 
-.keyboard--60 {
-  min-width: 540px;
-  max-width: 640px;
-}
-
-.keyboard--100,
-.keyboard--120 {
-  flex-direction: row;
-  justify-content: center;
-  align-items: flex-start;
-  padding: 16px;
-}
-
-.keyboard--100 {
-  min-width: 900px;
-  max-width: 1080px;
-  gap: 14px;
-}
-
-.keyboard--120 {
-  min-width: 1000px;
-  max-width: 1240px;
-  gap: 12px;
+.keyboard__plate {
+  position: relative;
+  container-type: inline-size;
+  aspect-ratio: var(--kb-w) / var(--kb-h);
+  background: linear-gradient(180deg, #171126 0%, #110d1e 100%);
+  border-radius: 6px;
+  box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.7);
 }
 
 .keyboard-scroll-hint {
@@ -288,116 +276,54 @@ body {
   display: none;
 }
 
-.kb-section {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-  min-height: max-content;
-  gap: 6px;
-}
-
-/* Редовете в секциите са с фиксирана височина, за да съвпадат между секциите */
-.kb-section .keyboard-row {
-  flex: 0 0 38px;
-  width: 100%;
-  height: 38px;
-  min-height: 38px;
-}
-
-.kb-section-macro {
-  flex: 2.2 1 0;
-}
-
-.kb-section-main {
-  flex: 15 1 0;
-}
-
-.kb-section-nav {
-  flex: 3 1 0;
-}
-
-.kb-section-numpad {
-  flex: 4 1 0;
-}
-
-.key-spacer-row {
-  width: 100%;
-  height: 38px;
-  min-height: 38px;
-}
-
-.kb-section-nav .keyboard-row:has(.key-spacer-row) {
-  visibility: hidden;
-}
-
-.keyboard-row {
-  display: flex;
-  flex-direction: row;
-  justify-content: center;
-  gap: 5px;
-}
-
+/* Ръбът на клавиша (skirt) е самият .key, а горната повърхност с надписа е .key__top */
 .key {
-  flex: 1 1 0;
-  min-width: 0;
-  height: 38px;
+  --unit: calc(100cqw / var(--kb-w));
+  --key-gap: calc(var(--unit) * 0.08);
+  position: absolute;
+  left: calc(var(--x) * var(--unit) + var(--key-gap) / 2);
+  top: calc(var(--y) * var(--unit) + var(--key-gap) / 2);
+  width: calc(var(--w) * var(--unit) - var(--key-gap));
+  height: calc(var(--h) * var(--unit) - var(--key-gap));
+  background: linear-gradient(180deg, #3b3552 0%, #221e36 100%);
+  border-radius: calc(var(--unit) * 0.12);
+  box-shadow:
+    0 calc(var(--unit) * 0.04) 0 #06050b,
+    0 calc(var(--unit) * 0.08) calc(var(--unit) * 0.12) rgba(0, 0, 0, 0.6);
+  font-size: calc(var(--unit) * 0.22);
+  font-weight: bold;
+  color: #9d97b8;
+  user-select: none;
+  cursor: pointer;
+  transition: transform 0.08s ease, box-shadow 0.08s ease;
+}
+
+.key--small {
+  font-size: calc(var(--unit) * 0.17);
+}
+
+.key__top {
+  position: absolute;
+  inset: calc(var(--unit) * 0.05) calc(var(--unit) * 0.1) calc(var(--unit) * 0.16);
   display: flex;
   justify-content: center;
   align-items: center;
-  background: var(--key-bg-color);
-  border: 1px solid #000000;
-  border-radius: 5px;
-  box-shadow: 0 3px 0 #111, 0 4px 4px rgba(0, 0, 0, 0.4);
-  font-size: 0.68rem;
-  font-weight: bold;
-  color: #111111;
-  user-select: none;
-  cursor: pointer;
-  transition: background-color 0.12s ease, transform 0.08s ease, box-shadow 0.08s ease;
+  overflow: hidden;
+  white-space: nowrap;
+  background: linear-gradient(180deg, #4a4464 0%, #38324f 100%);
+  border-radius: calc(var(--unit) * 0.09);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    0 0 calc(var(--unit) * 0.04) rgba(0, 0, 0, 0.5);
 }
 
-.key-spacer {
-  flex: 0.5;
-  background: transparent;
-  border: none;
-  box-shadow: none;
-}
-
-.key--wide {
-  flex: 1.6 1 0;
-}
-
-.key--caps {
-  flex: 1.8 1 0;
-}
-
-.key--enter {
-  flex: 2 1 0;
-}
-
-.key--shift {
-  flex: 2.2 1 0;
-}
-
-.key--mod {
-  flex: 1.3 1 0;
-}
-
-.key--space {
-  flex: 6 1 0;
-}
-
-.key--esc {
-  flex: 1.2 1 0;
-}
-
-.key:hover {
-  background: var(--key-active-color);
+.key:hover .key__top {
+  filter: brightness(1.18);
 }
 
 .key:active {
-  transform: translateY(2px);
-  box-shadow: 0 1px 0 #111, 0 1px 2px rgba(0, 0, 0, 0.4);
+  transform: translateY(calc(var(--unit) * 0.03));
+  box-shadow: 0 calc(var(--unit) * 0.01) 0 #06050b;
 }
 
 .settings-menu {
@@ -716,29 +642,30 @@ body {
   }
 }
 
+/* Светлината излиза изпод клавиша върху плочата, а надписът свети отгоре */
 .keyboard.rgb-on .key {
-  background: #1b1d23;
-  color: var(--led-lit);
-  text-shadow: 0 0 6px var(--led-lit);
+  background: linear-gradient(180deg, #2c2740 0%, #15121f 100%);
   box-shadow:
-    0 3px 0 #0b0c0f,
-    0 0 12px color-mix(in srgb, var(--led-lit) 55%, transparent),
-    inset 0 0 8px color-mix(in srgb, var(--led-lit) 35%, transparent);
-}
-
-.keyboard.rgb-on .key:hover {
-  background: #272a33;
+    0 calc(var(--unit) * 0.04) 0 #06050b,
+    inset 0 calc(var(--unit) * -0.06) calc(var(--unit) * 0.12) color-mix(in srgb, var(--led-lit) 45%, transparent),
+    0 0 calc(var(--unit) * 0.35) color-mix(in srgb, var(--led-lit) 55%, transparent);
 }
 
 .keyboard.rgb-on .key:active {
   box-shadow:
-    0 1px 0 #0b0c0f,
-    0 0 12px color-mix(in srgb, var(--led-lit) 55%, transparent);
+    0 calc(var(--unit) * 0.01) 0 #06050b,
+    0 0 calc(var(--unit) * 0.35) color-mix(in srgb, var(--led-lit) 55%, transparent);
+}
+
+.keyboard.rgb-on .key__top {
+  background: linear-gradient(180deg, #3a3452 0%, #2a2540 100%);
+  color: var(--led-lit);
+  text-shadow: 0 0 calc(var(--unit) * 0.12) var(--led-lit);
 }
 
 .key.is-selected {
   outline: 2px solid #ffffff;
-  outline-offset: 2px;
+  outline-offset: 1px;
 }
 
 .mouse-led-zone {
