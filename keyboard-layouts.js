@@ -45,6 +45,19 @@ const KEYBOARD_LAYOUTS = {
       'Ctrl:1.25 Win:1.25 Alt:1.25 Space:6.25 Alt Fn Ctrl ← ↓ →'
     ]
   },
+  // TKL (80%) като Logitech G515 TKL: пълноразмерна без numpad, 87 клавиша
+  80: {
+    label: 'TKL (80%)',
+    storageId: 'keyboard-tkl',
+    rows: [
+      `${F_ROW} _0.25 PrtSc ScrLk Pause`,
+      { gap: 0.5, keys: `${NUMBER_ROW} _0.25 Ins Home PgUp` },
+      `${TAB_ROW} _0.25 Del End PgDn`,
+      CAPS_ROW,
+      `${SHIFT_ROW} _1.25 ↑`,
+      `${BOTTOM_ROW} _0.25 ← ↓ →`
+    ]
+  },
   100: {
     label: '100%',
     storageId: 'keyboard-100.html',

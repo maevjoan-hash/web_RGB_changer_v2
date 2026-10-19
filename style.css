@@ -1225,3 +1225,25 @@ button.layout-option {
     grid-template-columns: 1fr;
   }
 }
+
+.live-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  color: #ffffff;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.live-toggle input {
+  accent-color: #ffd98a;
+}
+
+.save-bar .device-summary {
+  text-align: center;
+}
+
+.save-bar .device-summary[hidden] {
+  display: none;
+}

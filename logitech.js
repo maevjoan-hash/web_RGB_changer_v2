@@ -18,7 +18,11 @@ const LogitechHidpp = (() => {
     DEVICE_NAME: 0x0005,
     UNIFIED_BATTERY: 0x1004,
     EXTENDED_DPI: 0x2202,
-    ONBOARD_PROFILES: 0x8100
+    ONBOARD_PROFILES: 0x8100,
+    BRIGHTNESS: 0x8040,
+    RGB_EFFECTS: 0x8071,
+    PER_KEY_LIGHTING: 0x8081,
+    PROFILE_MANAGEMENT: 0x8101
   };
 
   const ERROR_NAMES = {
@@ -448,6 +452,48 @@ const LogitechButtons = (() => {
   return { encode, describe };
 })();
 
+// --- ПОМОЩ, КОГАТО СИСТЕМАТА НЕ ДАВА ДОСТЪП ДО УСТРОЙСТВОТО (обща за мишката и клавиатурата) ---
+const LogitechHelp = (() => {
+  const isLinux = /Linux/i.test(navigator.userAgent) && !/Android/i.test(navigator.userAgent);
+
+  // Същото правило като linux/42-logitech-webhid.rules в проекта.
+  // Без heredoc и „&&“, за да работи еднакво в bash, zsh и fish.
+  const LINUX_COMMANDS = [
+    "printf '%s\\n' 'SUBSYSTEM==\"hidraw\", ATTRS{idVendor}==\"046d\", TAG+=\"uaccess\"' " +
+      "'SUBSYSTEM==\"hidraw\", KERNELS==\"0005:046D:*\", TAG+=\"uaccess\"' " +
+      '| sudo tee /etc/udev/rules.d/42-logitech-webhid.rules > /dev/null',
+    'sudo udevadm control --reload-rules',
+    'sudo udevadm trigger'
+  ].join('\n');
+
+  const html = (deviceName) => `
+    <div class="device-help" id="device-help" hidden>
+      <div data-help-os="linux">
+        <p>В Linux браузърът няма достъп до HID устройствата, докато не му се разреши. Изпълни веднъж в терминала:</p>
+        <pre class="device-help__code"><code id="device-help-commands"></code></pre>
+        <div class="panel-actions">
+          <button type="button" class="panel-btn" data-device-action="copy-commands">Копирай командите</button>
+        </div>
+        <p>След това изключи и включи ${deviceName} (или я свържи отново по Bluetooth) и опитай пак.
+          Ако браузърът е инсталиран като Snap или Flatpak, той може да няма достъп до HID устройства изобщо –
+          тогава използвай версията от официалния сайт или пакет (.deb/.rpm).</p>
+      </div>
+      <div data-help-os="other">
+        <p>Затвори Logitech G HUB и другите програми за устройството, рестартирай браузъра и опитай пак.</p>
+      </div>
+    </div>
+  `;
+
+  const setup = (root) => {
+    root.querySelector('#device-help-commands').textContent = LINUX_COMMANDS;
+    root.querySelectorAll('[data-help-os]').forEach((block) => {
+      block.hidden = (block.dataset.helpOs === 'linux') !== isLinux;
+    });
+  };
+
+  return { LINUX_COMMANDS, html, setup };
+})();
+
 // --- ПАНЕЛ „ЗАПИС В МИШКАТА“ ---
 (() => {
   const device = document.querySelector('.mouse-svg');
@@ -594,21 +640,7 @@ const LogitechButtons = (() => {
     </div>
     <p class="device-log" id="device-log" role="status"></p>
 
-    <div class="device-help" id="device-help" hidden>
-      <div data-help-os="linux">
-        <p>В Linux браузърът няма достъп до HID устройствата, докато не му се разреши. Изпълни веднъж в терминала:</p>
-        <pre class="device-help__code"><code id="device-help-commands"></code></pre>
-        <div class="panel-actions">
-          <button type="button" class="panel-btn" data-device-action="copy-commands">Копирай командите</button>
-        </div>
-        <p>След това изключи и включи мишката (или я свържи отново по Bluetooth) и натисни „Свържи мишката“ пак.
-          Ако браузърът е инсталиран като Snap или Flatpak, той може да няма достъп до HID устройства изобщо –
-          тогава използвай версията от официалния сайт или пакет (.deb/.rpm).</p>
-      </div>
-      <div data-help-os="other">
-        <p>Затвори Logitech G HUB и другите програми за мишката, рестартирай браузъра и опитай пак.</p>
-      </div>
-    </div>
+    ${LogitechHelp.html('мишката')}
   `;
   (document.querySelector('[data-device-actions]') || panel).append(deviceBar);
   const find = (selector) => panel.querySelector(selector) || deviceBar.querySelector(selector);
@@ -632,22 +664,7 @@ const LogitechButtons = (() => {
   const onboardNote = find('#device-onboard-note');
   const log = find('#device-log');
   const help = find('#device-help');
-  const isLinux = /Linux/i.test(navigator.userAgent) && !/Android/i.test(navigator.userAgent);
-
-  // Същото правило като linux/42-logitech-webhid.rules в проекта.
-  // Без heredoc и „&&“, за да работи еднакво в bash, zsh и fish.
-  const LINUX_COMMANDS = [
-    "printf '%s\\n' 'SUBSYSTEM==\"hidraw\", ATTRS{idVendor}==\"046d\", TAG+=\"uaccess\"' " +
-      "'SUBSYSTEM==\"hidraw\", KERNELS==\"0005:046D:*\", TAG+=\"uaccess\"' " +
-      '| sudo tee /etc/udev/rules.d/42-logitech-webhid.rules > /dev/null',
-    'sudo udevadm control --reload-rules',
-    'sudo udevadm trigger'
-  ].join('\n');
-
-  find('#device-help-commands').textContent = LINUX_COMMANDS;
-  deviceBar.querySelectorAll('[data-help-os]').forEach((block) => {
-    block.hidden = (block.dataset.helpOs === 'linux') !== isLinux;
-  });
+  LogitechHelp.setup(deviceBar);
   const emptyHint = panel.querySelector('#device-empty');
   const connectButton = find('[data-device-action="connect"]');
   const disconnectButton = find('[data-device-action="disconnect"]');
@@ -1116,7 +1133,7 @@ const LogitechButtons = (() => {
   const actions = {
     connect: run(connect),
     'copy-commands': run(async () => {
-      await navigator.clipboard.writeText(LINUX_COMMANDS);
+      await navigator.clipboard.writeText(LogitechHelp.LINUX_COMMANDS);
       setLog('Командите са копирани. Постави ги в терминала.');
     }),
     'copy-diagnostics': run(async () => {
