@@ -1481,3 +1481,96 @@ button.layout-option {
 .hp-modes {
   grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
 }
+
+/* --- УЕБ КАМЕРА --- */
+.webcam-stage {
+  padding: 16px;
+}
+
+.webcam-frame {
+  position: relative;
+  width: min(100%, 760px);
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  background: #0b0912;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 12px;
+}
+
+.webcam-video {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+
+.webcam-video.is-mirrored {
+  transform: scaleX(-1);
+}
+
+.webcam-placeholder {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  color: rgba(255, 255, 255, 0.6);
+  font-weight: bold;
+}
+
+.webcam-placeholder[hidden] {
+  display: none;
+}
+
+.webcam-placeholder svg {
+  width: 56px;
+  height: 56px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.webcam-badge {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  padding: 4px 10px;
+  background: rgba(0, 0, 0, 0.55);
+  border-radius: 999px;
+  color: #ffffff;
+  font-size: 0.8rem;
+  font-weight: bold;
+}
+
+.webcam-badge[hidden] {
+  display: none;
+}
+
+.webcam-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.webcam-controls:empty {
+  display: none;
+}
+
+.webcam-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+}
+
+.range-field.is-auto input {
+  opacity: 0.5;
+}
+
+.profile-btn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}

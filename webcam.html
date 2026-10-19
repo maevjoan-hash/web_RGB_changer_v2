@@ -27,12 +27,59 @@
         </button>
       </header>
 
-      <section class="coming-soon">
-        <h1 class="coming-soon__title">Web Камера</h1>
-        <p class="coming-soon__text">Очаквайте скоро – конфигураторът за това устройство все още се разработва.</p>
+      <section class="device-preview" aria-label="Образ от камерата">
+        <div class="device-display-area mouse-display-area">
+          <div class="mouse-stage webcam-stage">
+            <div class="webcam-frame">
+              <video id="webcam-video" class="webcam-video" autoplay playsinline muted></video>
+              <div class="webcam-placeholder" id="webcam-placeholder">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M23 7l-7 5 7 5V7z"></path>
+                  <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
+                </svg>
+                <span>Камерата е спряна</span>
+              </div>
+              <span class="webcam-badge" id="webcam-badge" hidden></span>
+            </div>
+          </div>
+        </div>
       </section>
+
+      <div class="save-bar" aria-label="Камера и профили">
+        <div class="save-bar__profiles" data-profiles></div>
+        <div class="save-bar__device" data-device-actions></div>
+      </div>
+
+      <div class="settings-columns">
+        <section class="settings-menu settings-column" data-column="image" aria-label="Картина">
+          <div class="layout-switcher">
+            <button type="button" class="connected-devices-btn layout-switcher__btn" data-settings-menu-btn data-menu-title="Картина">
+              Картина ▾
+            </button>
+            <div id="image-options" class="layout-options">
+              <button type="button" class="layout-option settings-tab" data-tab="1">Светлина и цвят</button>
+              <button type="button" class="layout-option settings-tab" data-tab="2">Експонация и баланс на бялото</button>
+            </div>
+          </div>
+          <div class="settings-panels"></div>
+        </section>
+
+        <section class="settings-menu settings-column" data-column="camera" aria-label="Камера">
+          <div class="layout-switcher">
+            <button type="button" class="connected-devices-btn layout-switcher__btn" data-settings-menu-btn data-menu-title="Камера">
+              Камера ▾
+            </button>
+            <div id="camera-options" class="layout-options">
+              <button type="button" class="layout-option settings-tab" data-tab="3">Фокус и мащаб</button>
+              <button type="button" class="layout-option settings-tab" data-tab="4">Образ и информация</button>
+            </div>
+          </div>
+          <div class="settings-panels"></div>
+        </section>
+      </div>
     </main>
 
     <script src="script.js"></script>
+    <script src="webcam.js"></script>
   </body>
 </html>
