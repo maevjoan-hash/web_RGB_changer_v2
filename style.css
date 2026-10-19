@@ -1271,3 +1271,31 @@ button.layout-option {
 .device-timer .field__select {
   width: auto;
 }
+
+.fn-finder {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.fn-finder[hidden],
+.fn-finder [hidden] {
+  display: none;
+}
+
+.fn-choice {
+  border-color: var(--choice);
+  box-shadow: inset 0 0 0 1px var(--choice);
+}
+
+.fn-choice::before {
+  content: '';
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-right: 6px;
+  border-radius: 50%;
+  background: var(--choice);
+}

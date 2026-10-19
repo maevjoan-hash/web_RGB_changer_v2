@@ -38,11 +38,31 @@
     Enter: 37, Esc: 38, Backspace: 39, Tab: 40, Space: 41, '-': 42, '=': 43, '[': 44, ']': 45, '\\': 46,
     ';': 48, "'": 49, '`': 50, ',': 51, '.': 52, '/': 53, Caps: 54, PrtSc: 67, ScrLk: 68, Pause: 69,
     Ins: 70, Home: 71, PgUp: 72, Del: 73, End: 74, PgDn: 75, '→': 76, '←': 77, '↓': 78, '↑': 79, Menu: 98,
-    Ctrl: 104, Shift: 105, Alt: 106, Win: 107, 'Ctrl#2': 108, 'Shift#2': 109, 'Alt#2': 110, 'Win#2': 111,
-    // Fn няма HID код; G515 обявява необяснена зона 254 – най-вероятно Fn (боядисва се само ако я има)
-    Fn: 254
+    Ctrl: 104, Shift: 105, Alt: 106, Win: 107, 'Ctrl#2': 108, 'Shift#2': 109, 'Alt#2': 110, 'Win#2': 111
   };
-  const FN_ZONE = 254;
+
+  // Fn няма HID код и зоната му не е описана никъде. „Намери Fn“ запалва зоните, които клавиатурата обявява,
+  // но нямат клавиш на TKL, в различни цветове – потребителят посочва цвета на Fn и изборът се помни.
+  const FN_KEY = 'rgb-changer-g515-fn-zone';
+  const FN_CANDIDATES = [
+    { zone: 111, color: '#ff1744', name: 'червено' },
+    { zone: 254, color: '#00e676', name: 'зелено' },
+    { zone: 99, color: '#2979ff', name: 'синьо' },
+    { zone: 97, color: '#ffea00', name: 'жълто' },
+    { zone: 47, color: '#ff40ff', name: 'розово' },
+    { zone: 100, color: '#00e5ff', name: 'циан' },
+    { zone: 101, color: '#ff9100', name: 'оранжево' },
+    { zone: 102, color: '#ffffff', name: 'бяло' }
+  ];
+  const readFnZone = () => {
+    try {
+      return Number(localStorage.getItem(FN_KEY)) || null;
+    } catch {
+      return null;
+    }
+  };
+  let fnZone = readFnZone();
+  const zoneOf = (keyId) => (keyId === 'Fn' ? fnZone : ZONES[keyId]);
   'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').forEach((letter, index) => {
     ZONES[letter] = 1 + index;
   });
@@ -70,9 +90,16 @@
           <label class="live-toggle"><input type="checkbox" id="kb-live" checked /> На живо</label>
           <button type="button" class="panel-btn panel-btn--primary" data-device-action="save">Запиши в клавиатурата</button>
           <button type="button" class="panel-btn" data-device-action="release">Върни подсветката от паметта</button>
+          <button type="button" class="panel-btn" data-device-action="find-fn">Намери Fn</button>
           <button type="button" class="panel-btn" data-device-action="copy-diagnostics">Техническа информация</button>
           <button type="button" class="panel-btn" data-device-action="disconnect">Прекъсни</button>
         </span>
+      </div>
+      <div class="save-bar__row fn-finder" data-fn-finder hidden>
+        <span>Какъв цвят свети Fn?</span>
+        ${FN_CANDIDATES.map((candidate) => `<button type="button" class="panel-btn fn-choice" data-fn-zone="${candidate.zone}"
+          style="--choice: ${candidate.color}">${candidate.name}</button>`).join('')}
+        <button type="button" class="panel-btn" data-fn-zone="0">Не свети</button>
       </div>
       <div class="save-bar__row device-timers" data-timers hidden>
         <label class="device-timer">Затъмняване след
@@ -93,6 +120,7 @@
   const connectButton = bar.querySelector('[data-device-action="connect"]');
   const connectedGroup = bar.querySelector('[data-connected]');
   const timersRow = bar.querySelector('[data-timers]');
+  const fnFinder = bar.querySelector('[data-fn-finder]');
   const idleSelect = bar.querySelector('#kb-idle');
   const sleepSelect = bar.querySelector('#kb-sleep');
   const liveInput = bar.querySelector('#kb-live');
@@ -104,7 +132,8 @@
   let effectIndexes = new Map();
   let hasPerKey = false;
   let hasBrightness = false;
-  let hasFnZone = false;
+  let zoneBitmap = [];
+  let findingFn = false;
   let claimed = false;
   let wantControl = false; // сайтът трябва да държи подсветката (след „Приложи“ или промяна на живо)
   let power = 'active'; // active | dim | off
@@ -241,13 +270,13 @@
   const sendPerKeyFrame = async (lighting, percent) => {
     const [r, g, b] = rgb(scaleColor(lighting.color, percent));
     await send(FEATURES.PER_KEY_LIGHTING, 0x50, [1, 111, r, g, b]);
-    // setRange иска first < last, затова зоната на Fn (извън 1–111) се боядисва поотделно
-    if (hasFnZone) await send(FEATURES.PER_KEY_LIGHTING, 0x60, [r, g, b, FN_ZONE]);
+    // setRange иска first < last, затова зона на Fn извън 1–111 се боядисва поотделно
+    if (fnZone > 111) await send(FEATURES.PER_KEY_LIGHTING, 0x60, [r, g, b, fnZone]);
 
     const groups = new Map();
     Object.entries(lighting.leds).forEach(([keyId, color]) => {
-      const zone = ZONES[keyId];
-      if (!zone || color === lighting.color || (zone === FN_ZONE && !hasFnZone)) return;
+      const zone = zoneOf(keyId);
+      if (!zone || color === lighting.color) return;
       if (!groups.has(color)) groups.set(color, []);
       groups.get(color).push(zone);
     });
@@ -357,13 +386,13 @@
     }
     const rgbIndex = keyboard.featureIndexes.get(FEATURES.RGB_EFFECTS);
     if (reportId !== 0x11 || bytes[1] !== rgbIndex || bytes[2] !== 0x10) return;
-    if (!claimed || performance.now() < settleUntil) return;
+    if (!claimed || findingFn || performance.now() < settleUntil) return;
     exclusive(bytes[3] === 0 ? goIdle : wake).catch(showError);
   };
 
   // На всеки 5 s: ако клавиатурата се е върнала към паметта си (рестарт, дълбок сън), сайтът я поема отново
   const watch = () => {
-    if (!keyboard || !wantControl) return;
+    if (!keyboard || !wantControl || findingFn) return;
     exclusive(async () => {
       if (!keyboard || !wantControl) return;
       try {
@@ -496,7 +525,7 @@
   const effectRecord = (effectId, lighting, percent) => [effectId, ...scaledParams(effectId, lighting, percent)];
 
   const hasPerKeyColors = (lighting) => lighting.effect === 'static' &&
-    Object.entries(lighting.leds).some(([keyId, color]) => ZONES[keyId] && color !== lighting.color);
+    Object.entries(lighting.leds).some(([keyId, color]) => zoneOf(keyId) && color !== lighting.color);
 
   const saveToKeyboard = async () => {
     if (!(await keyboard.supports(FEATURES.PROFILE_MANAGEMENT))) {
@@ -593,6 +622,49 @@
   };
   const hasZone = (bitmap, zone) => Boolean((bitmap[zone >> 3] >> (zone & 7)) & 1);
 
+  // --- НАМИРАНЕ НА Fn ---
+  // Всичко угасва, а кандидатите за Fn светват всеки в свой цвят
+  const findFn = async () => {
+    const candidates = FN_CANDIDATES.filter(({ zone }) => !zoneBitmap.length || hasZone(zoneBitmap, zone));
+    if (!hasPerKey || !effectIndexes.has(0x01)) throw new Error('Клавиатурата няма цвят по клавиши.');
+    if (!claimed) await claim();
+    wantControl = true;
+    findingFn = true;
+    lastSent = '';
+    await send(FEATURES.RGB_EFFECTS, 0x10, [0x00, effectIndexes.get(0x01), 0, 0, 0, 0x02, 0, 0, 0, 0, 0, 0, 0x01]);
+    await send(FEATURES.PER_KEY_LIGHTING, 0x50, [1, 111, 0, 0, 0]);
+    for (const { zone, color } of candidates) await send(FEATURES.PER_KEY_LIGHTING, 0x60, [...rgb(color), zone]);
+    await send(FEATURES.PER_KEY_LIGHTING, 0x70, [0x00, 0x00, 0x00, 0x00, 0x00]);
+
+    fnFinder.querySelectorAll('.fn-choice').forEach((button) => {
+      button.hidden = !candidates.some(({ zone }) => zone === Number(button.dataset.fnZone));
+    });
+    fnFinder.hidden = false;
+    setLog('Клавиатурата е угаснала, освен няколко зони в различни цветове. Натисни цвета, в който свети Fn.');
+  };
+
+  const cancelFindFn = () => {
+    fnFinder.hidden = true;
+    findingFn = false;
+  };
+
+  const chooseFn = async (zone) => {
+    cancelFindFn();
+    if (zone) {
+      fnZone = zone;
+      try {
+        localStorage.setItem(FN_KEY, String(zone));
+      } catch {
+        // Изборът важи само до презареждане
+      }
+    }
+    diagnostics.fnZone = fnZone;
+    if (keyboard) await applyLighting();
+    setLog(zone
+      ? 'Fn е намерен – вече се оцветява като останалите клавиши.'
+      : 'Fn не е в тези зони. Прати ми „Техническа информация“ и ще потърся другаде.');
+  };
+
   // automatic: при отваряне на страницата или включване – тихо, само за G515
   const connectTo = async (found, automatic) => {
     keyboard = found;
@@ -614,8 +686,7 @@
     effectIndexes = await readEffects();
     hasPerKey = await keyboard.supports(FEATURES.PER_KEY_LIGHTING);
     hasBrightness = await keyboard.supports(FEATURES.BRIGHTNESS);
-    const zoneBitmap = hasPerKey ? await readZoneBitmap().catch(() => []) : [];
-    hasFnZone = hasZone(zoneBitmap, FN_ZONE);
+    zoneBitmap = hasPerKey ? await readZoneBitmap().catch(() => []) : [];
     // Таймерите за затъмняване и изключване (секунди), заредени от профила в паметта
     timers = await send(FEATURES.RGB_EFFECTS, 0x70, [0x00])
       .then((reply) => ({ idle: (reply[3] << 8) | reply[4], sleep: (reply[5] << 8) | reply[6] }))
@@ -632,7 +703,7 @@
       effects: Object.fromEntries([...effectIndexes].map(([id, index]) => [`0x${id.toString(16).padStart(2, '0')}`, index])),
       perKey: hasPerKey,
       brightness: hasBrightness,
-      fnZone: hasFnZone,
+      fnZone,
       zoneBitmap: hex(zoneBitmap),
       timers
     };
@@ -679,6 +750,7 @@
   }).catch(() => {});
 
   const forget = () => {
+    cancelFindFn();
     clearInterval(watchTimer);
     clearTimeout(offTimer);
     keyboard = null;
@@ -698,7 +770,7 @@
 
   // --- НА ЖИВО: всяка промяна на подсветката на сайта отива към клавиатурата ---
   const scheduleApply = () => {
-    if (!keyboard || !liveInput.checked) return;
+    if (!keyboard || !liveInput.checked || findingFn) return;
     clearTimeout(applyTimer);
     applyTimer = setTimeout(() => {
       exclusive(async () => {
@@ -736,15 +808,21 @@
   const actions = {
     connect: run(connect),
     apply: run(async () => {
+      cancelFindFn();
       if (claimed && power !== 'active') await wake();
       else await applyLighting();
       setLog('Подсветката е приложена.');
     }),
-    save: run(saveToKeyboard),
+    save: run(async () => {
+      cancelFindFn();
+      await saveToKeyboard();
+    }),
     release: run(async () => {
+      cancelFindFn();
       await release();
       setLog('Клавиатурата показва подсветката от паметта си. „Приложи подсветката“ я поема отново.');
     }),
+    'find-fn': run(findFn),
     'copy-diagnostics': run(async () => {
       if (keyboard) {
         diagnostics.features = Object.fromEntries(Object.entries(FEATURES).map(
@@ -771,6 +849,8 @@
   bar.addEventListener('click', (event) => {
     const action = event.target.closest('[data-device-action]')?.dataset.deviceAction;
     if (action) actions[action]();
+    const fnChoice = event.target.closest('[data-fn-zone]');
+    if (fnChoice) run(() => chooseFn(Number(fnChoice.dataset.fnZone)))();
   });
 
   [idleSelect, sleepSelect].forEach((select) => {
