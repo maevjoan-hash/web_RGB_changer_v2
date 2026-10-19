@@ -1138,3 +1138,21 @@ button.layout-option {
   line-height: 1.5;
   white-space: pre;
 }
+
+.dpi-stages {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.dpi-stage {
+  display: grid;
+  grid-template-columns: auto 70px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  font-weight: bold;
+}
+
+.dpi-stage input[type='radio'] {
+  accent-color: #ffd98a;
+}
