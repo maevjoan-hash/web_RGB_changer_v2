@@ -38,8 +38,11 @@
     Enter: 37, Esc: 38, Backspace: 39, Tab: 40, Space: 41, '-': 42, '=': 43, '[': 44, ']': 45, '\\': 46,
     ';': 48, "'": 49, '`': 50, ',': 51, '.': 52, '/': 53, Caps: 54, PrtSc: 67, ScrLk: 68, Pause: 69,
     Ins: 70, Home: 71, PgUp: 72, Del: 73, End: 74, PgDn: 75, '→': 76, '←': 77, '↓': 78, '↑': 79, Menu: 98,
-    Ctrl: 104, Shift: 105, Alt: 106, Win: 107, 'Ctrl#2': 108, 'Shift#2': 109, 'Alt#2': 110, 'Win#2': 111
+    Ctrl: 104, Shift: 105, Alt: 106, Win: 107, 'Ctrl#2': 108, 'Shift#2': 109, 'Alt#2': 110, 'Win#2': 111,
+    // Fn няма HID код; G515 обявява необяснена зона 254 – най-вероятно Fn (боядисва се само ако я има)
+    Fn: 254
   };
+  const FN_ZONE = 254;
   'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').forEach((letter, index) => {
     ZONES[letter] = 1 + index;
   });
@@ -47,6 +50,16 @@
     ZONES[digit] = 27 + index;
   });
   for (let n = 1; n <= 12; n += 1) ZONES[`F${n}`] = 54 + n;
+
+  // Времена за неактивност (секунди); 0xFFFF = никога
+  const IDLE_CHOICES = [15, 30, 60, 120, 300, 600, NEVER];
+  const SLEEP_CHOICES = [60, 300, 600, 900, 1800, 3600, NEVER];
+  const timerLabel = (seconds) => {
+    if (seconds === NEVER) return 'никога';
+    if (seconds < 60) return `${seconds} s`;
+    return seconds % 3600 === 0 ? `${seconds / 3600} ч` : `${Math.round(seconds / 60)} мин`;
+  };
+  const timerOptions = (choices) => choices.map((seconds) => `<option value="${seconds}">${timerLabel(seconds)}</option>`).join('');
 
   bar.innerHTML = `
     <div class="device-bar">
@@ -61,6 +74,14 @@
           <button type="button" class="panel-btn" data-device-action="disconnect">Прекъсни</button>
         </span>
       </div>
+      <div class="save-bar__row device-timers" data-timers hidden>
+        <label class="device-timer">Затъмняване след
+          <select class="field__select" id="kb-idle">${timerOptions(IDLE_CHOICES)}</select>
+        </label>
+        <label class="device-timer">Изключване след
+          <select class="field__select" id="kb-sleep">${timerOptions(SLEEP_CHOICES)}</select>
+        </label>
+      </div>
       <p class="device-summary" id="kb-summary" hidden></p>
       <p class="device-log" id="device-log" role="status"></p>
       ${LogitechHelp.html('клавиатурата')}
@@ -71,6 +92,9 @@
   const deviceBar = bar.querySelector('.device-bar');
   const connectButton = bar.querySelector('[data-device-action="connect"]');
   const connectedGroup = bar.querySelector('[data-connected]');
+  const timersRow = bar.querySelector('[data-timers]');
+  const idleSelect = bar.querySelector('#kb-idle');
+  const sleepSelect = bar.querySelector('#kb-sleep');
   const liveInput = bar.querySelector('#kb-live');
   const summary = bar.querySelector('#kb-summary');
   const log = bar.querySelector('#device-log');
@@ -80,6 +104,7 @@
   let effectIndexes = new Map();
   let hasPerKey = false;
   let hasBrightness = false;
+  let hasFnZone = false;
   let claimed = false;
   let wantControl = false; // сайтът трябва да държи подсветката (след „Приложи“ или промяна на живо)
   let power = 'active'; // active | dim | off
@@ -216,11 +241,13 @@
   const sendPerKeyFrame = async (lighting, percent) => {
     const [r, g, b] = rgb(scaleColor(lighting.color, percent));
     await send(FEATURES.PER_KEY_LIGHTING, 0x50, [1, 111, r, g, b]);
+    // setRange иска first < last, затова зоната на Fn (извън 1–111) се боядисва поотделно
+    if (hasFnZone) await send(FEATURES.PER_KEY_LIGHTING, 0x60, [r, g, b, FN_ZONE]);
 
     const groups = new Map();
     Object.entries(lighting.leds).forEach(([keyId, color]) => {
       const zone = ZONES[keyId];
-      if (!zone || color === lighting.color) return;
+      if (!zone || color === lighting.color || (zone === FN_ZONE && !hasFnZone)) return;
       if (!groups.has(color)) groups.set(color, []);
       groups.get(color).push(zone);
     });
@@ -252,6 +279,34 @@
       lastSent = JSON.stringify(lighting);
       diagnostics.lastApplied = { ...lighting, effectId, effectIndex: effectIndexes.get(effectId) };
     }
+  };
+
+  // --- ВРЕМЕНА ЗА НЕАКТИВНОСТ (0x8071 fn7) ---
+  // Сменят се веднага; „Запиши в клавиатурата“ ги пази и в профила (байтове 2–5), за да важат след рестарт
+  const showTimers = () => {
+    [[idleSelect, timers.idle], [sleepSelect, timers.sleep]].forEach(([select, seconds]) => {
+      if (![...select.options].some((option) => Number(option.value) === seconds)) {
+        select.add(new Option(timerLabel(seconds), seconds));
+      }
+      select.value = String(seconds);
+    });
+  };
+
+  // Изключването трябва да е след затъмняването – другото поле се донагласява само
+  const setTimers = (changed) => async () => {
+    let idle = Number(idleSelect.value);
+    let sleep = Number(sleepSelect.value);
+    if (sleep !== NEVER && (idle === NEVER || sleep <= idle)) {
+      if (changed === idleSelect) sleep = SLEEP_CHOICES.find((seconds) => seconds > idle) ?? NEVER;
+      else idle = [...IDLE_CHOICES].reverse().find((seconds) => seconds < sleep) ?? IDLE_CHOICES[0];
+    }
+    await send(FEATURES.RGB_EFFECTS, 0x70, [0x01, 0x00, 0x00, idle >> 8, idle & 0xff, sleep >> 8, sleep & 0xff]);
+    timers = { idle, sleep };
+    diagnostics.timers = timers;
+    showTimers();
+    const describe = (seconds, action) => (seconds === NEVER ? `без ${action}` : `${action} след ${timerLabel(seconds)}`);
+    setLog(`${describe(idle, 'затъмняване')}, ${describe(sleep, 'изключване')}. `.replace(/^./, (c) => c.toUpperCase()) +
+      '„Запиши в клавиатурата“ ги пази и след рестарт.');
   };
 
   // --- НЕАКТИВНОСТ: докато сайтът държи подсветката, затъмнява и изключва вместо фърмуера ---
@@ -472,6 +527,7 @@
     profile.splice(PM.RECORDS + PM.RECORD_SIZE, PM.RECORD_SIZE, ...effectRecord(effectId, lighting, 100));
     profile.splice(PM.RECORDS + 3 * PM.RECORD_SIZE, PM.RECORD_SIZE, ...effectRecord(effectId, lighting, DIM_PERCENT));
     profile[PM.FLAGS] = 0x00;
+    profile.splice(2, 4, timers.idle >> 8, timers.idle & 0xff, timers.sleep >> 8, timers.sleep & 0xff);
     const profileCrc = crc32(profile);
 
     // Директорията е копие на фабричната с CRC на новия профил и мястото му (0x08)
@@ -524,7 +580,18 @@
     connectButton.hidden = isConnected;
     connectedGroup.hidden = !isConnected;
     summary.hidden = !isConnected;
+    timersRow.hidden = !isConnected;
   };
+
+  // Кои зони има клавиатурата (0x8081 getInfo, страници 0–2, по 14 байта битова карта)
+  const readZoneBitmap = async () => {
+    const bitmap = [];
+    for (let page = 0; page < 3; page += 1) {
+      bitmap.push(...(await send(FEATURES.PER_KEY_LIGHTING, 0x00, [0x00, page])).slice(2, 16));
+    }
+    return bitmap;
+  };
+  const hasZone = (bitmap, zone) => Boolean((bitmap[zone >> 3] >> (zone & 7)) & 1);
 
   // automatic: при отваряне на страницата или включване – тихо, само за G515
   const connectTo = async (found, automatic) => {
@@ -547,6 +614,8 @@
     effectIndexes = await readEffects();
     hasPerKey = await keyboard.supports(FEATURES.PER_KEY_LIGHTING);
     hasBrightness = await keyboard.supports(FEATURES.BRIGHTNESS);
+    const zoneBitmap = hasPerKey ? await readZoneBitmap().catch(() => []) : [];
+    hasFnZone = hasZone(zoneBitmap, FN_ZONE);
     // Таймерите за затъмняване и изключване (секунди), заредени от профила в паметта
     timers = await send(FEATURES.RGB_EFFECTS, 0x70, [0x00])
       .then((reply) => ({ idle: (reply[3] << 8) | reply[4], sleep: (reply[5] << 8) | reply[6] }))
@@ -563,12 +632,20 @@
       effects: Object.fromEntries([...effectIndexes].map(([id, index]) => [`0x${id.toString(16).padStart(2, '0')}`, index])),
       perKey: hasPerKey,
       brightness: hasBrightness,
+      fnZone: hasFnZone,
+      zoneBitmap: hex(zoneBitmap),
       timers
     };
+    // 0x1B05 (пренасочване на клавиши) не е описана публично – само се чете fn0, за бъдещо проучване
+    if (await keyboard.supports(FEATURES.FULL_KEY_CUSTOMIZATION)) {
+      diagnostics.fullKeyCustomization = await send(FEATURES.FULL_KEY_CUSTOMIZATION, 0x00)
+        .then(hex).catch((error) => error.message);
+    }
 
     const connection = keyboard.index === 0xff ? 'Bluetooth или кабел' : 'безжичен приемник';
     const batteryText = battery ? ` · батерия ${battery.percent}%${battery.charging ? ' (зарежда)' : ''}` : '';
     summary.textContent = `${name} · ${connection}${batteryText}`;
+    showTimers();
     showConnected(true);
 
     await applyLighting();
@@ -694,6 +771,10 @@
   bar.addEventListener('click', (event) => {
     const action = event.target.closest('[data-device-action]')?.dataset.deviceAction;
     if (action) actions[action]();
+  });
+
+  [idleSelect, sleepSelect].forEach((select) => {
+    select.addEventListener('change', run(setTimers(select)));
   });
 
   liveInput.addEventListener('change', () => {
