@@ -76,7 +76,9 @@ const LogitechHidpp = (() => {
         resolve(bytes.slice(3));
       } else if ((bytes[1] === 0xff || bytes[1] === 0x8f) && bytes[2] === featureIndex && bytes[3] === functionId) {
         const code = bytes[4];
-        reject(new Error(`Мишката върна грешка: ${ERROR_NAMES[code] || `код ${code}`}`));
+        const error = new Error(`Устройството върна грешка: ${ERROR_NAMES[code] || `код ${code}`}`);
+        error.hidppCode = code;
+        reject(error);
       }
     }
 
@@ -89,7 +91,7 @@ const LogitechHidpp = (() => {
 
         const timer = setTimeout(() => {
           this.pending = null;
-          reject(new Error('Мишката не отговори навреме.'));
+          reject(new Error('Устройството не отговори навреме.'));
         }, timeout);
 
         const finish = (callback) => (value) => {
@@ -137,7 +139,7 @@ const LogitechHidpp = (() => {
 
     async call(featureId, fn, params = []) {
       const index = await this.featureIndex(featureId);
-      if (!index) throw new Error(`Мишката не поддържа функция 0x${featureId.toString(16).padStart(4, '0')}.`);
+      if (!index) throw new Error(`Устройството не поддържа функция 0x${featureId.toString(16).padStart(4, '0')}.`);
       return this.request(index, fn, params);
     }
 

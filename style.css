@@ -1181,6 +1181,7 @@ button.layout-option {
 .save-bar .device-help {
   width: 100%;
   max-width: 760px;
+  color: rgba(255, 255, 255, 0.85);
 }
 
 .panel-btn--primary {
@@ -1246,4 +1247,27 @@ button.layout-option {
 
 .save-bar .device-summary[hidden] {
   display: none;
+}
+
+.helper-help summary {
+  color: #ffd98a;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.helper-help:not([open]) {
+  gap: 0;
+}
+
+.helper-help code {
+  font-family: 'Courier New', monospace;
+}
+
+.helper-help > * + * {
+  margin-top: 10px;
+}
+
+.helper-help .panel-actions {
+  flex-direction: row;
+  justify-content: center;
 }
