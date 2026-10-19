@@ -100,21 +100,39 @@
         </div>
       </section>
 
-      <section class="settings-menu" aria-label="Всички настройки">
-        <div class="layout-switcher">
-          <button type="button" class="connected-devices-btn layout-switcher__btn" data-settings-menu-btn>
-            Всички настройки ▾
-          </button>
-          <div id="settings-options" class="layout-options">
-            <button type="button" class="layout-option settings-tab" data-tab="1">Цвят</button>
-            <button type="button" class="layout-option settings-tab" data-tab="2">Ефекти</button>
-            <button type="button" class="layout-option settings-tab" data-tab="3">Яркост и скорост</button>
-            <button type="button" class="layout-option settings-tab" data-tab="4">Профили</button>
-            <button type="button" class="layout-option settings-tab" data-tab="5">Функции на бутоните</button>
-            <button type="button" class="layout-option settings-tab" data-tab="6">Запис в мишката</button>
+      <div class="save-bar" aria-label="Профили и запис">
+        <div class="save-bar__profiles" data-profiles></div>
+        <div class="save-bar__device" data-device-actions></div>
+      </div>
+
+      <div class="settings-columns">
+        <section class="settings-menu settings-column" data-column="lighting" aria-label="Подсветка">
+          <div class="layout-switcher">
+            <button type="button" class="connected-devices-btn layout-switcher__btn" data-settings-menu-btn data-menu-title="Подсветка">
+              Подсветка ▾
+            </button>
+            <div id="lighting-options" class="layout-options">
+              <button type="button" class="layout-option settings-tab" data-tab="1">Цвят</button>
+              <button type="button" class="layout-option settings-tab" data-tab="2">Ефекти</button>
+              <button type="button" class="layout-option settings-tab" data-tab="3">Яркост и скорост</button>
+            </div>
           </div>
-        </div>
-      </section>
+          <div class="settings-panels"></div>
+        </section>
+
+        <section class="settings-menu settings-column" data-column="buttons" aria-label="Програмируеми бутони">
+          <div class="layout-switcher">
+            <button type="button" class="connected-devices-btn layout-switcher__btn" data-settings-menu-btn data-menu-title="Бутони">
+              Бутони ▾
+            </button>
+            <div id="buttons-options" class="layout-options">
+              <button type="button" class="layout-option settings-tab" data-tab="5">Функции на бутоните</button>
+              <button type="button" class="layout-option settings-tab" data-tab="6">Мишка и DPI</button>
+            </div>
+          </div>
+          <div class="settings-panels"></div>
+        </section>
+      </div>
     </main>
 
     <script src="script.js"></script>

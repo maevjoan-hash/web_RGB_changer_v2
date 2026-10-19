@@ -451,8 +451,8 @@ const LogitechButtons = (() => {
 // --- ПАНЕЛ „ЗАПИС В МИШКАТА“ ---
 (() => {
   const device = document.querySelector('.mouse-svg');
-  const panels = document.querySelector('.settings-panels');
   const tab = document.querySelector('.settings-tab[data-tab="6"]');
+  const panels = tab?.closest('.settings-menu')?.querySelector('.settings-panels') || document.querySelector('.settings-panels');
   if (!device || !panels || !tab) return;
 
   const MODE_ONBOARD = 0x01;
@@ -543,13 +543,10 @@ const LogitechButtons = (() => {
   panel.id = `settings-panel-${tab.dataset.tab}`;
   panel.setAttribute('role', 'region');
   panel.setAttribute('aria-label', tab.textContent);
-  panel.hidden = true;
+  panel.hidden = !tab.classList.contains('active');
   tab.setAttribute('aria-controls', panel.id);
   panel.innerHTML = `
-    <div class="panel-actions">
-      <button type="button" class="panel-btn" data-device-action="connect">Свържи мишката</button>
-      <button type="button" class="panel-btn" data-device-action="disconnect" hidden>Прекъсни</button>
-    </div>
+    <p class="settings-hint" id="device-empty">Свържи мишката от бутона под нея.</p>
 
     <div class="device-details" id="device-details" hidden>
       <p class="device-summary" id="device-summary"></p>
@@ -564,7 +561,6 @@ const LogitechButtons = (() => {
         </label>
         <div class="panel-actions">
           <button type="button" class="panel-btn" data-device-action="apply-dpi">Приложи веднага</button>
-          <button type="button" class="panel-btn" data-device-action="write-dpi" id="device-write-dpi" hidden>Запиши DPI нивата в мишката</button>
         </div>
       </div>
 
@@ -573,10 +569,6 @@ const LogitechButtons = (() => {
         <ul class="binding-list" id="device-buttons"></ul>
         <p class="field__label" id="device-plan-title"></p>
         <ul class="binding-list" id="device-plan"></ul>
-        <div class="panel-actions" id="device-write-actions">
-          <button type="button" class="panel-btn" data-device-action="write">Запиши в мишката</button>
-          <button type="button" class="panel-btn" data-device-action="factory">Върни фабричните бутони</button>
-        </div>
       </div>
 
       <p class="panel-note" id="device-onboard-note" hidden></p>
@@ -584,7 +576,22 @@ const LogitechButtons = (() => {
         <button type="button" class="panel-btn" data-device-action="copy-diagnostics">Копирай техническа информация</button>
       </div>
     </div>
+  `;
+  panels.append(panel);
 
+  // Свързването, записът, съобщенията и помощта са в лентата под мишката (data-device-actions)
+  const deviceBar = document.createElement('div');
+  deviceBar.className = 'device-bar';
+  deviceBar.innerHTML = `
+    <div class="panel-actions save-bar__row">
+      <button type="button" class="panel-btn panel-btn--primary" data-device-action="connect">Свържи мишката</button>
+      <span class="save-bar__group" id="device-write-actions" hidden>
+        <button type="button" class="panel-btn panel-btn--primary" data-device-action="write">Запиши в мишката</button>
+        <button type="button" class="panel-btn" data-device-action="factory">Върни фабричните бутони</button>
+      </span>
+      <button type="button" class="panel-btn panel-btn--primary" data-device-action="write-dpi" id="device-write-dpi" hidden>Запиши DPI нивата</button>
+      <button type="button" class="panel-btn" data-device-action="disconnect" hidden>Прекъсни</button>
+    </div>
     <p class="device-log" id="device-log" role="status"></p>
 
     <div class="device-help" id="device-help" hidden>
@@ -603,27 +610,28 @@ const LogitechButtons = (() => {
       </div>
     </div>
   `;
-  panels.append(panel);
+  (document.querySelector('[data-device-actions]') || panel).append(deviceBar);
+  const find = (selector) => panel.querySelector(selector) || deviceBar.querySelector(selector);
 
-  const details = panel.querySelector('#device-details');
-  const summary = panel.querySelector('#device-summary');
-  const dpiBlock = panel.querySelector('#device-dpi-block');
-  const dpiInput = panel.querySelector('#device-dpi');
-  const dpiRange = panel.querySelector('#device-dpi-range');
-  const dpiCurrent = panel.querySelector('#device-dpi-current');
-  const dpiStages = panel.querySelector('#device-dpi-stages');
-  const dpiStagesHint = panel.querySelector('#device-dpi-stages-hint');
-  const dpiSingle = panel.querySelector('#device-dpi-single');
-  const writeDpiButton = panel.querySelector('#device-write-dpi');
-  const applyDpiButton = panel.querySelector('[data-device-action="apply-dpi"]');
-  const buttonsBlock = panel.querySelector('#device-buttons-block');
-  const buttonsList = panel.querySelector('#device-buttons');
-  const planTitle = panel.querySelector('#device-plan-title');
-  const planList = panel.querySelector('#device-plan');
-  const writeActions = panel.querySelector('#device-write-actions');
-  const onboardNote = panel.querySelector('#device-onboard-note');
-  const log = panel.querySelector('#device-log');
-  const help = panel.querySelector('#device-help');
+  const details = find('#device-details');
+  const summary = find('#device-summary');
+  const dpiBlock = find('#device-dpi-block');
+  const dpiInput = find('#device-dpi');
+  const dpiRange = find('#device-dpi-range');
+  const dpiCurrent = find('#device-dpi-current');
+  const dpiStages = find('#device-dpi-stages');
+  const dpiStagesHint = find('#device-dpi-stages-hint');
+  const dpiSingle = find('#device-dpi-single');
+  const writeDpiButton = find('#device-write-dpi');
+  const applyDpiButton = find('[data-device-action="apply-dpi"]');
+  const buttonsBlock = find('#device-buttons-block');
+  const buttonsList = find('#device-buttons');
+  const planTitle = find('#device-plan-title');
+  const planList = find('#device-plan');
+  const writeActions = find('#device-write-actions');
+  const onboardNote = find('#device-onboard-note');
+  const log = find('#device-log');
+  const help = find('#device-help');
   const isLinux = /Linux/i.test(navigator.userAgent) && !/Android/i.test(navigator.userAgent);
 
   // Същото правило като linux/42-logitech-webhid.rules в проекта.
@@ -636,12 +644,13 @@ const LogitechButtons = (() => {
     'sudo udevadm trigger'
   ].join('\n');
 
-  panel.querySelector('#device-help-commands').textContent = LINUX_COMMANDS;
-  panel.querySelectorAll('[data-help-os]').forEach((block) => {
+  find('#device-help-commands').textContent = LINUX_COMMANDS;
+  deviceBar.querySelectorAll('[data-help-os]').forEach((block) => {
     block.hidden = (block.dataset.helpOs === 'linux') !== isLinux;
   });
-  const connectButton = panel.querySelector('[data-device-action="connect"]');
-  const disconnectButton = panel.querySelector('[data-device-action="disconnect"]');
+  const emptyHint = panel.querySelector('#device-empty');
+  const connectButton = find('[data-device-action="connect"]');
+  const disconnectButton = find('[data-device-action="disconnect"]');
 
   let mouse = null;
   let deviceText = '';
@@ -924,6 +933,7 @@ const LogitechButtons = (() => {
     onboardNote.hidden = !onboardMessage;
     onboardNote.textContent = onboardMessage;
     details.hidden = false;
+    emptyHint.hidden = true;
     connectButton.hidden = true;
     disconnectButton.hidden = false;
     renderDevice();
@@ -932,13 +942,20 @@ const LogitechButtons = (() => {
     setLog('Мишката е свързана.');
   };
 
+  const showDisconnected = () => {
+    details.hidden = true;
+    emptyHint.hidden = false;
+    connectButton.hidden = false;
+    disconnectButton.hidden = true;
+    writeActions.hidden = true;
+    writeDpiButton.hidden = true;
+  };
+
   const disconnect = async () => {
     await mouse?.close();
     mouse = null;
     onboard = null;
-    details.hidden = true;
-    connectButton.hidden = false;
-    disconnectButton.hidden = true;
+    showDisconnected();
     setLog('Връзката е прекъсната.');
   };
 
@@ -1082,6 +1099,7 @@ const LogitechButtons = (() => {
     if (busy) return;
     busy = true;
     panel.classList.add('is-busy');
+    deviceBar.classList.add('is-busy');
     try {
       await action(...args);
     } catch (error) {
@@ -1091,6 +1109,7 @@ const LogitechButtons = (() => {
     } finally {
       busy = false;
       panel.classList.remove('is-busy');
+      deviceBar.classList.remove('is-busy');
     }
   };
 
@@ -1118,10 +1137,12 @@ const LogitechButtons = (() => {
     factory: run(() => writeProfile({ buttons: 'factory', dpi: false }))
   };
 
-  panel.addEventListener('click', (event) => {
+  const onDeviceClick = (event) => {
     const action = event.target.closest('[data-device-action]')?.dataset.deviceAction;
     if (action) actions[action](event);
-  });
+  };
+  panel.addEventListener('click', onDeviceClick);
+  deviceBar.addEventListener('click', onDeviceClick);
 
   // Докато панелът е отворен, текущото ниво се обновява – видимо е и когато се натисне бутонът DPI на мишката
   setInterval(() => {
@@ -1136,9 +1157,7 @@ const LogitechButtons = (() => {
     if (mouse && event.device === mouse.hid) {
       mouse = null;
       onboard = null;
-      details.hidden = true;
-      connectButton.hidden = false;
-      disconnectButton.hidden = true;
+      showDisconnected();
       setLog('Мишката беше изключена.', true);
     }
   });

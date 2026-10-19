@@ -1151,3 +1151,77 @@ button.layout-option {
   stroke-linecap: round;
   pointer-events: none;
 }
+
+/* --- ЛЕНТА ЗА ПРОФИЛИ И ЗАПИС (под устройството) --- */
+.save-bar,
+.device-bar {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.save-bar__row {
+  justify-content: center;
+}
+
+.save-bar__group {
+  display: contents;
+}
+
+.save-bar__group[hidden] {
+  display: none;
+}
+
+.save-bar .device-log {
+  text-align: center;
+}
+
+.save-bar .device-help {
+  width: 100%;
+  max-width: 760px;
+}
+
+.panel-btn--primary {
+  background: rgba(255, 217, 138, 0.16);
+  border-color: rgba(255, 217, 138, 0.6);
+}
+
+.panel-btn--primary:hover,
+.panel-btn--primary:focus-visible {
+  background: rgba(255, 217, 138, 0.26);
+}
+
+.device-bar.is-busy .panel-btn {
+  pointer-events: none;
+  opacity: 0.6;
+}
+
+/* --- ДВЕ КОЛОНИ: ПОДСВЕТКА И БУТОНИ --- */
+.settings-columns {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+  gap: 20px;
+}
+
+.settings-column {
+  padding: 10px;
+  border: 1px solid transparent;
+  border-radius: 14px;
+  transition: border-color 0.2s ease, background-color 0.2s ease;
+}
+
+/* Колоната, към която отиват кликовете върху устройството */
+.settings-column.is-active {
+  background: rgba(255, 255, 255, 0.02);
+  border-color: rgba(255, 217, 138, 0.35);
+}
+
+@media (max-width: 900px) {
+  .settings-columns {
+    grid-template-columns: 1fr;
+  }
+}
