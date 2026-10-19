@@ -1064,3 +1064,9 @@ button.layout-option {
 .binding-toast[hidden] {
   display: none;
 }
+
+.binding-profile {
+  font-size: 0.85rem;
+  font-weight: bold;
+  color: #b8d4f0;
+}

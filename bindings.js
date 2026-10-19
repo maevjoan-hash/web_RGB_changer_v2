@@ -146,31 +146,58 @@
     }
   };
 
-  const loadBindings = () => {
+  // Функциите са отделни за всеки профил. Активният профил идва от rgb.js (data-profile на устройството).
+  const activeProfile = () => device.dataset.profile || '0';
+
+  const sanitize = (saved) => Object.fromEntries(
+    Object.entries(saved && typeof saved === 'object' ? saved : {})
+      .filter(([id, binding]) => findTarget(id) && isValidBinding(binding))
+  );
+
+  const loadStore = () => {
     try {
       const saved = JSON.parse(localStorage.getItem(storageKey));
+
+      if (saved?.profiles && typeof saved.profiles === 'object') {
+        return {
+          profiles: Object.fromEntries(
+            Object.entries(saved.profiles).map(([profile, profileBindings]) => [profile, sanitize(profileBindings)])
+          )
+        };
+      }
+
+      // Старият формат беше общ за всички профили: копира се във всеки, за да не се загуби нищо
       if (saved && typeof saved === 'object') {
-        return Object.fromEntries(
-          Object.entries(saved).filter(([id, binding]) => findTarget(id) && isValidBinding(binding))
-        );
+        const profileCount = Number(device.dataset.profileCount) || 1;
+        return {
+          profiles: Object.fromEntries(
+            Array.from({ length: profileCount }, (_, index) => [String(index), sanitize(saved)])
+          )
+        };
       }
     } catch (error) {
       console.warn('Неуспешно зареждане на функциите на бутоните', error);
     }
-    return {};
+    return { profiles: {} };
   };
 
-  const bindings = loadBindings();
+  const store = loadStore();
+
+  const profileBindings = () => {
+    const profile = activeProfile();
+    if (!Object.hasOwn(store.profiles, profile)) store.profiles[profile] = {};
+    return store.profiles[profile];
+  };
 
   const saveBindings = () => {
     try {
-      localStorage.setItem(storageKey, JSON.stringify(bindings));
+      localStorage.setItem(storageKey, JSON.stringify(store));
     } catch (error) {
       console.warn('Неуспешно запазване на функциите на бутоните', error);
     }
   };
 
-  const currentBinding = (target) => bindings[target.id] || defaultBinding(target);
+  const currentBinding = (target) => profileBindings()[target.id] || defaultBinding(target);
 
   // --- ДЕМО ПЛЕЪР ЗА МЕДИЙНИТЕ ДЕЙСТВИЯ ---
   // Кратки мелодии, генерирани с Web Audio, за да се чуе какво прави бутонът
@@ -379,6 +406,7 @@
   panel.innerHTML = `
     <p class="settings-hint">Кликни върху ${deviceName}, за да му зададеш нова функция: друг клавиш,
       комбинация, макро, медия или действие на мишката. Настройките се пазят в браузъра.</p>
+    <p class="binding-profile" id="binding-profile"></p>
     <p class="binding-target" id="binding-target"></p>
 
     <div class="binding-editor" id="binding-editor">
@@ -437,6 +465,7 @@
   panel.setAttribute('aria-label', bindingsTab.textContent);
   bindingsTab.setAttribute('aria-controls', panel.id);
 
+  const profileText = panel.querySelector('#binding-profile');
   const targetText = panel.querySelector('#binding-target');
   const editor = panel.querySelector('#binding-editor');
   const currentText = panel.querySelector('#binding-current');
@@ -473,7 +502,7 @@
 
   const stopRecording = () => {
     if (recording?.mode === 'macro' && recording.steps.length > 0) {
-      bindings[selectedId] = { type: 'macro', value: recording.steps };
+      profileBindings()[selectedId] = { type: 'macro', value: recording.steps };
       draftType = null;
       saveBindings();
     }
@@ -482,6 +511,9 @@
 
   const render = () => {
     const target = selectedId ? findTarget(selectedId) : null;
+    const bindings = profileBindings();
+
+    profileText.textContent = `Функциите важат за Профил ${Number(activeProfile()) + 1}. Профилът се сменя от „Профили“.`;
 
     targets.forEach(({ id, el }) => {
       el.classList.toggle('is-binding-target', id === selectedId);
@@ -552,7 +584,7 @@
   };
 
   const setBinding = (binding) => {
-    bindings[selectedId] = binding;
+    profileBindings()[selectedId] = binding;
     draftType = null;
     saveBindings();
     render();
@@ -560,7 +592,7 @@
 
   const removeBinding = (id) => {
     if (id === selectedId) stopRecording();
-    delete bindings[id];
+    delete profileBindings()[id];
     draftType = null;
     saveBindings();
     render();
@@ -577,6 +609,19 @@
 
   settingsTabs.forEach((tab) => {
     tab.addEventListener('click', () => setMode(tab === bindingsTab));
+  });
+
+  // Смяна на профила показва неговите функции; нулирането на профила изтрива и тях
+  device.addEventListener('profilechange', () => {
+    recording = null;
+    draftType = null;
+    render();
+  });
+
+  device.addEventListener('profilereset', (event) => {
+    delete store.profiles[String(event.detail.profile)];
+    saveBindings();
+    render();
   });
 
   device.addEventListener('click', (event) => {
