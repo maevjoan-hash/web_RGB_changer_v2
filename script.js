@@ -64,14 +64,13 @@ const connectedDevicesBtn = document.querySelector('#connected-devices-btn');
 const layoutSwitchers = document.querySelectorAll('.layout-switcher');
 
 layoutSwitchers.forEach((switcher) => {
-  const button = switcher.querySelector('#layout-switcher-btn');
-  const options = switcher.querySelector('#layout-options');
+  const button = switcher.querySelector('.layout-switcher__btn');
+  const options = switcher.querySelector('.layout-options');
 
   if (!button || !options) return;
 
   const setOpen = (isOpen) => {
     switcher.classList.toggle('is-open', isOpen);
-    options.classList.toggle('open', isOpen);
     button.setAttribute('aria-expanded', String(isOpen));
   };
 

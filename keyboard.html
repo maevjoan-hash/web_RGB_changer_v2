@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Конфигуратор на периферия</title>
+    <title>Конфигуратор на клавиатура</title>
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
@@ -20,15 +20,10 @@
       </header>
 
       <div class="layout-switcher">
-        <button type="button" id="layout-switcher-btn" class="connected-devices-btn">
+        <button type="button" class="connected-devices-btn layout-switcher__btn">
           Други проценти на клавиатурите ▾
         </button>
-        <div id="layout-options" class="layout-options">
-          <a href="keyboard-60.html" class="layout-option">60%</a>
-          <a href="keyboard.html" class="layout-option active" aria-current="page">75%</a>
-          <a href="keyboard-100.html" class="layout-option">100%</a>
-          <a href="keyboard-120.html" class="layout-option">120%</a>
-        </div>
+        <div id="layout-options" class="layout-options" data-keyboard-layout-options></div>
       </div>
 
       <button type="button" id="connected-devices-btn" class="connected-devices-btn">
@@ -36,103 +31,7 @@
       </button>
 
       <section id="device-preview" class="device-preview" aria-label="Визуализация на устройство">
-        <div id="device-display-area" class="device-display-area">
-          <div class="keyboard" aria-hidden="true">
-            <div class="keyboard-row">
-              <div class="key key--esc">Esc</div>
-              <div class="key-spacer"></div>
-              <div class="key">F1</div>
-              <div class="key">F2</div>
-              <div class="key">F3</div>
-              <div class="key">F4</div>
-              <div class="key-spacer"></div>
-              <div class="key">F5</div>
-              <div class="key">F6</div>
-              <div class="key">F7</div>
-              <div class="key">F8</div>
-              <div class="key-spacer"></div>
-              <div class="key">F9</div>
-              <div class="key">F10</div>
-              <div class="key">F11</div>
-              <div class="key">F12</div>
-            </div>
-
-            <div class="keyboard-row">
-              <div class="key">`</div>
-              <div class="key">1</div>
-              <div class="key">2</div>
-              <div class="key">3</div>
-              <div class="key">4</div>
-              <div class="key">5</div>
-              <div class="key">6</div>
-              <div class="key">7</div>
-              <div class="key">8</div>
-              <div class="key">9</div>
-              <div class="key">0</div>
-              <div class="key">-</div>
-              <div class="key">=</div>
-              <div class="key key--wide">Backspace</div>
-            </div>
-
-            <div class="keyboard-row">
-              <div class="key key--wide">Tab</div>
-              <div class="key">Q</div>
-              <div class="key">W</div>
-              <div class="key">E</div>
-              <div class="key">R</div>
-              <div class="key">T</div>
-              <div class="key">Y</div>
-              <div class="key">U</div>
-              <div class="key">I</div>
-              <div class="key">O</div>
-              <div class="key">P</div>
-              <div class="key">[</div>
-              <div class="key">]</div>
-              <div class="key key--wide">\</div>
-            </div>
-
-            <div class="keyboard-row">
-              <div class="key key--caps">Caps</div>
-              <div class="key">A</div>
-              <div class="key">S</div>
-              <div class="key">D</div>
-              <div class="key">F</div>
-              <div class="key">G</div>
-              <div class="key">H</div>
-              <div class="key">J</div>
-              <div class="key">K</div>
-              <div class="key">L</div>
-              <div class="key">;</div>
-              <div class="key">'</div>
-              <div class="key key--enter">Enter</div>
-            </div>
-
-            <div class="keyboard-row">
-              <div class="key key--shift">Shift</div>
-              <div class="key">Z</div>
-              <div class="key">X</div>
-              <div class="key">C</div>
-              <div class="key">V</div>
-              <div class="key">B</div>
-              <div class="key">N</div>
-              <div class="key">M</div>
-              <div class="key">,</div>
-              <div class="key">.</div>
-              <div class="key">/</div>
-              <div class="key key--shift">Shift</div>
-            </div>
-
-            <div class="keyboard-row">
-              <div class="key key--mod">Ctrl</div>
-              <div class="key key--mod">Win</div>
-              <div class="key key--mod">Alt</div>
-              <div class="key key--space">Space</div>
-              <div class="key key--mod">Alt</div>
-              <div class="key key--mod">Fn</div>
-              <div class="key key--mod">Ctrl</div>
-            </div>
-          </div>
-        </div>
+        <div id="device-display-area" class="device-display-area" data-keyboard-display></div>
       </section>
 
       <section class="settings-menu" aria-label="Меню за настройки">
@@ -146,6 +45,7 @@
       </section>
     </main>
 
+    <script src="keyboard-layouts.js"></script>
     <script src="script.js"></script>
     <script src="rgb.js"></script>
   </body>

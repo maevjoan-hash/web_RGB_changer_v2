@@ -9,7 +9,7 @@
   const isKeyboard = device.classList.contains('keyboard');
   const PROFILE_COUNT = 3;
   const DEFAULT_COLOR = '#a06bff';
-  const storageKey = `rgb-changer:${location.pathname.split('/').pop() || 'index.html'}`;
+  const storageKey = `rgb-changer:${device.dataset.storageId || location.pathname.split('/').pop()}`;
 
   const PRESET_COLORS = [
     { color: '#ff1744', name: 'Червен' },
