@@ -364,7 +364,7 @@
   const readBe32 = (bytes, offset) => ((bytes[offset] << 24) | (bytes[offset + 1] << 16) |
     (bytes[offset + 2] << 8) | bytes[offset + 3]) >>> 0;
   const sameBytes = (a, b) => Boolean(a && b) && a.length === b.length && a.every((value, i) => value === b[i]);
-  const hex = (bytes) => bytes && bytes.map((byte) => byte.toString(16).padStart(2, '0')).join(' ');
+  const hex = (bytes) => bytes && Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join(' ');
 
   const pmCall = (fn, params = []) => send(FEATURES.PROFILE_MANAGEMENT, fn << 4, params);
 
@@ -454,9 +454,17 @@
     const effectId = EFFECT_IDS[lighting.effect].find((id) => effectIndexes.has(id));
     if (effectId === undefined) throw new Error('Клавиатурата не поддържа този ефект.');
 
+    // Всяка стъпка с отговора на клавиатурата отива в „Техническа информация“
+    const trace = [];
+    diagnostics.saveTrace = trace;
+    const step = (label, reply) => trace.push(reply ? `${label}: ${hex(reply)}` : label);
+    step(`${diagnostics.name}, устройство 0x${keyboard.index.toString(16)}, ефект ${lighting.effect} ${lighting.color}`);
+    step('0x8101 getInfo', await pmCall(0x0).catch((error) => [error.message]));
+
     setLog('Чета паметта на клавиатурата…');
     const files = await readProfileFiles();
     keepBackup(files);
+    step(files.userProfile ? 'има потребителски профил' : 'няма потребителски профил (ще се използва фабричният)');
 
     // Новият профил е копие на досегашния (или фабричния) с нови записи 1 и 3; флаг 00 = използвай тях
     const profile = [...(files.userProfile || files.factoryProfile)];
@@ -473,23 +481,42 @@
     dir.splice(0, 4, ...be32(crc32(dir.slice(4))));
 
     setLog('Записвам в паметта на клавиатурата…');
-    if (!sameBytes(profile, files.userProfile)) await pmSave(PM.USER_PROFILE, profile, profileCrc);
-    if (!sameBytes(dir, files.userDir)) await pmSave(PM.USER_DIR, dir, readBe32(dir, 0));
+    diagnostics.savedProfile = hex(profile);
+    if (!sameBytes(profile, files.userProfile)) {
+      await pmSave(PM.USER_PROFILE, profile, profileCrc);
+      step('профилът е записан и проверен');
+    } else {
+      step('профилът е същият – не е записван');
+    }
+    if (!sameBytes(dir, files.userDir)) {
+      await pmSave(PM.USER_DIR, dir, readBe32(dir, 0));
+      step('директорията е записана и проверена');
+    } else {
+      step('директорията е същата – не е записвана');
+    }
 
     // Връща подсветката на клавиатурата и я кара да зареди новия профил веднага
     await dropControl();
-    await pmCall(0x6, [0x0b]);
-    await pmCall(0x9, [0x81, 0x01, 0x01, 0x00, 0x01, 0x00, 0x63, ...be32(profileCrc)]);
+    step('режим преди активиране', await pmCall(0x6, [0x00]));
+    step('onboard (fn6 0b)', await pmCall(0x6, [0x0b]));
+    step('активиране (fn9)', await pmCall(0x9, [0x81, 0x01, 0x01, 0x00, 0x01, 0x00, 0x63, ...be32(profileCrc)]));
     const mode = await pmCall(0x6, [0x00]);
-    diagnostics.savedProfile = hex(profile);
+    step('режим след активиране', mode);
     if (!(mode[0] & 1) || mode[1] !== 0x00 || mode[2] !== 0x01) {
       throw new Error(`Профилът е записан, но клавиатурата не потвърди зареждането му (${hex(mode.slice(0, 3))}).`);
     }
     if (hasBrightness) await send(FEATURES.BRIGHTNESS, 0x20, [0x00, lighting.brightness]).catch(() => {});
 
-    setLog(hasPerKeyColors(lighting)
-      ? 'Ефектът и основният цвят са записани в клавиатурата. Цветовете по клавиши паметта ѝ не пази – те се показват, докато сайтът е отворен.'
-      : 'Подсветката е записана в клавиатурата и остава и без сайта.');
+    step('паметта е потвърдена');
+
+    // Паметта пази само основния цвят – докато сайтът е отворен, той показва отново и цветовете по клавиши
+    if (hasPerKeyColors(lighting)) {
+      await applyLighting();
+      setLog(`Записан е основният цвят (${lighting.color}) – клавиатурата го показва, когато сайтът е затворен. ` +
+        'Цветовете по клавиши паметта ѝ не пази, затова ги показва сайтът, докато е отворен.');
+    } else {
+      setLog('Подсветката е записана в клавиатурата и остава и без сайта.');
+    }
   };
 
   // --- СВЪРЗВАНЕ ---
