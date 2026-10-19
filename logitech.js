@@ -636,9 +636,6 @@ const LogitechHelp = (() => {
       </div>
 
       <p class="panel-note" id="device-onboard-note" hidden></p>
-      <div class="panel-actions">
-        <button type="button" class="panel-btn" data-device-action="copy-diagnostics">Копирай техническа информация</button>
-      </div>
     </div>
   `;
   panels.append(panel);
@@ -651,10 +648,17 @@ const LogitechHelp = (() => {
       <button type="button" class="panel-btn panel-btn--primary" data-device-action="connect">Свържи мишката</button>
       <span class="save-bar__group" id="device-write-actions" hidden>
         <button type="button" class="panel-btn panel-btn--primary" data-device-action="write">Запиши в мишката</button>
-        <button type="button" class="panel-btn" data-device-action="factory">Върни фабричните бутони</button>
       </span>
       <button type="button" class="panel-btn panel-btn--primary" data-device-action="write-dpi" id="device-write-dpi" hidden>Запиши DPI нивата</button>
-      <button type="button" class="panel-btn" data-device-action="disconnect" hidden>Прекъсни</button>
+      <details class="action-menu" id="device-menu" hidden>
+        <summary class="panel-btn">Още ▾</summary>
+        <div class="action-menu__list">
+          <button type="button" class="panel-btn" data-device-action="factory" id="device-factory" hidden>Върни фабричните бутони</button>
+          <button type="button" class="panel-btn" data-device-action="copy-diagnostics">Техническа информация</button>
+          <hr />
+          <button type="button" class="panel-btn panel-btn--danger" data-device-action="disconnect">Прекъсни</button>
+        </div>
+      </details>
     </div>
     <p class="device-log" id="device-log" role="status"></p>
 
@@ -685,7 +689,8 @@ const LogitechHelp = (() => {
   LogitechHelp.setup(deviceBar);
   const emptyHint = panel.querySelector('#device-empty');
   const connectButton = find('[data-device-action="connect"]');
-  const disconnectButton = find('[data-device-action="disconnect"]');
+  const deviceMenu = find('#device-menu');
+  const factoryButton = find('#device-factory');
 
   let mouse = null;
   let deviceText = '';
@@ -741,6 +746,7 @@ const LogitechHelp = (() => {
     const buttonsOffset = onboard.layout.buttons;
     const recognized = buttonsOffset !== null;
     writeActions.hidden = !recognized;
+    factoryButton.hidden = !recognized;
     planTitle.hidden = !recognized;
     planList.hidden = !recognized;
 
@@ -970,7 +976,7 @@ const LogitechHelp = (() => {
     details.hidden = false;
     emptyHint.hidden = true;
     connectButton.hidden = true;
-    disconnectButton.hidden = false;
+    deviceMenu.hidden = false;
     renderDevice();
     renderDpi();
     if (dpiCaps) await showCurrentDpi().catch(() => {});
@@ -981,8 +987,10 @@ const LogitechHelp = (() => {
     details.hidden = true;
     emptyHint.hidden = false;
     connectButton.hidden = false;
-    disconnectButton.hidden = true;
+    deviceMenu.hidden = true;
+    deviceMenu.open = false;
     writeActions.hidden = true;
+    factoryButton.hidden = true;
     writeDpiButton.hidden = true;
   };
 

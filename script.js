@@ -151,3 +151,20 @@ if (connectedDevicesBtn) {
     }
   });
 }
+
+// --- МЕНЮТА „ОЩЕ“ ---
+// Второстепенните действия на устройствата са в <details class="action-menu">; затварят се след избор,
+// при клик извън тях и с Escape
+document.addEventListener('click', (event) => {
+  document.querySelectorAll('.action-menu[open]').forEach((menu) => {
+    if (!menu.contains(event.target) || event.target.closest('.action-menu__list button')) menu.open = false;
+  });
+});
+
+document.addEventListener('keydown', (event) => {
+  if (event.key !== 'Escape') return;
+  document.querySelectorAll('.action-menu[open]').forEach((menu) => {
+    menu.open = false;
+    menu.querySelector('summary').focus();
+  });
+});

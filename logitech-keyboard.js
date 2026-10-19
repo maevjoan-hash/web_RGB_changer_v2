@@ -91,13 +91,19 @@
       <div class="panel-actions save-bar__row">
         <button type="button" class="panel-btn panel-btn--primary" data-device-action="connect">Свържи клавиатурата</button>
         <span class="save-bar__group" data-connected hidden>
-          <button type="button" class="panel-btn panel-btn--primary" data-device-action="apply">Приложи подсветката</button>
           <label class="live-toggle"><input type="checkbox" id="kb-live" checked /> На живо</label>
+          <button type="button" class="panel-btn" data-device-action="apply">Приложи</button>
           <button type="button" class="panel-btn panel-btn--primary" data-device-action="save">Запиши в клавиатурата</button>
-          <button type="button" class="panel-btn" data-device-action="release">Върни подсветката от паметта</button>
-          <button type="button" class="panel-btn" data-device-action="find-fn">Намери Fn</button>
-          <button type="button" class="panel-btn" data-device-action="copy-diagnostics">Техническа информация</button>
-          <button type="button" class="panel-btn" data-device-action="disconnect">Прекъсни</button>
+          <details class="action-menu">
+            <summary class="panel-btn">Още ▾</summary>
+            <div class="action-menu__list">
+              <button type="button" class="panel-btn" data-device-action="release">Върни подсветката от паметта</button>
+              <button type="button" class="panel-btn" data-device-action="find-fn">Намери Fn</button>
+              <button type="button" class="panel-btn" data-device-action="copy-diagnostics">Техническа информация</button>
+              <hr />
+              <button type="button" class="panel-btn panel-btn--danger" data-device-action="disconnect">Прекъсни</button>
+            </div>
+          </details>
         </span>
       </div>
       <div class="save-bar__row fn-finder" data-fn-finder hidden>
@@ -112,14 +118,6 @@
         <button type="button" class="panel-btn" data-fn-answer="no">Не</button>
         <button type="button" class="panel-btn" data-fn-answer="cancel">Откажи</button>
       </div>
-      <div class="save-bar__row device-timers" data-timers hidden>
-        <label class="device-timer">Затъмняване след
-          <select class="field__select" id="kb-idle">${timerOptions(IDLE_CHOICES)}</select>
-        </label>
-        <label class="device-timer">Изключване след
-          <select class="field__select" id="kb-sleep">${timerOptions(SLEEP_CHOICES)}</select>
-        </label>
-      </div>
       <p class="device-summary" id="kb-summary" hidden></p>
       <p class="device-log" id="device-log" role="status"></p>
       ${LogitechHelp.html('клавиатурата')}
@@ -127,15 +125,30 @@
   `;
   LogitechHelp.setup(bar);
 
+  // Времената за неактивност са настройка на подсветката – в панела „Яркост и скорост“, щом клавиатурата е свързана
+  const timersRow = document.createElement('div');
+  timersRow.className = 'device-timers';
+  timersRow.hidden = true;
+  timersRow.innerHTML = `
+    <label class="field">
+      <span class="field__label">Затъмняване след</span>
+      <select class="field__select" id="kb-idle">${timerOptions(IDLE_CHOICES)}</select>
+    </label>
+    <label class="field">
+      <span class="field__label">Изключване след</span>
+      <select class="field__select" id="kb-sleep">${timerOptions(SLEEP_CHOICES)}</select>
+    </label>
+  `;
+  (document.querySelector('[data-column="lighting"] [data-panel="3"]') || bar).append(timersRow);
+
   const deviceBar = bar.querySelector('.device-bar');
   const connectButton = bar.querySelector('[data-device-action="connect"]');
   const connectedGroup = bar.querySelector('[data-connected]');
-  const timersRow = bar.querySelector('[data-timers]');
   const fnFinder = bar.querySelector('[data-fn-finder]');
   const fnSearch = bar.querySelector('[data-fn-search]');
   const fnQuestion = bar.querySelector('#fn-search-question');
-  const idleSelect = bar.querySelector('#kb-idle');
-  const sleepSelect = bar.querySelector('#kb-sleep');
+  const idleSelect = timersRow.querySelector('#kb-idle');
+  const sleepSelect = timersRow.querySelector('#kb-sleep');
   const liveInput = bar.querySelector('#kb-live');
   const summary = bar.querySelector('#kb-summary');
   const log = bar.querySelector('#device-log');
