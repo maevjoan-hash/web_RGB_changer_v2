@@ -355,6 +355,19 @@
     profile.speed = Number(speedInput.value);
   }));
 
+  // Текущата подсветка за другите скриптове (logitech-keyboard.js я праща към клавиатурата)
+  window.RgbChanger = window.RgbChanger || {};
+  window.RgbChanger.getLighting = () => {
+    const profile = currentProfile();
+    return {
+      effect: getEffect(profile.effect).id,
+      color: profile.color,
+      leds: { ...profile.leds },
+      brightness: profile.brightness,
+      periodMs: Math.round(Number(speedToSeconds(profile.speed)) * 1000)
+    };
+  };
+
   // --- ВИЗУАЛИЗАЦИЯ ---
   function render() {
     const profile = currentProfile();
@@ -398,6 +411,8 @@
     profileButtons.forEach((button) => {
       button.setAttribute('aria-pressed', String(Number(button.dataset.profile) === state.active));
     });
+
+    device.dispatchEvent(new CustomEvent('rgbchange'));
   }
 
   updateWavePositions();
