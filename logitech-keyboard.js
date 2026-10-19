@@ -42,7 +42,8 @@
   };
 
   // Fn няма HID код и зоната му не е описана никъде. „Намери Fn“ запалва зоните, които клавиатурата обявява,
-  // но нямат клавиш на TKL, в различни цветове – потребителят посочва цвета на Fn и изборът се помни.
+  // но може да нямат клавиш на TKL (98 е Menu, ако го има), в различни цветове – потребителят посочва цвета
+  // на Fn и изборът се помни. Зони 1–79, 104–110 са на познати клавиши и не се пробват.
   const FN_KEY = 'rgb-changer-g515-fn-zone';
   const FN_CANDIDATES = [
     { zone: 111, color: '#ff1744', name: 'червено' },
@@ -52,7 +53,9 @@
     { zone: 47, color: '#ff40ff', name: 'розово' },
     { zone: 100, color: '#00e5ff', name: 'циан' },
     { zone: 101, color: '#ff9100', name: 'оранжево' },
-    { zone: 102, color: '#ffffff', name: 'бяло' }
+    { zone: 102, color: '#ffffff', name: 'бяло' },
+    { zone: 98, color: '#7c4dff', name: 'лилаво' },
+    { zone: 103, color: '#8d6e63', name: 'кафяво' }
   ];
   const readFnZone = () => {
     try {
@@ -99,7 +102,8 @@
         <span>Какъв цвят свети Fn?</span>
         ${FN_CANDIDATES.map((candidate) => `<button type="button" class="panel-btn fn-choice" data-fn-zone="${candidate.zone}"
           style="--choice: ${candidate.color}">${candidate.name}</button>`).join('')}
-        <button type="button" class="panel-btn" data-fn-zone="0">Не свети</button>
+        <button type="button" class="panel-btn" data-fn-zone="0" data-fn-state="off">Fn е угаснал</button>
+        <button type="button" class="panel-btn" data-fn-zone="0" data-fn-state="white">Fn свети бяло</button>
       </div>
       <div class="save-bar__row device-timers" data-timers hidden>
         <label class="device-timer">Затъмняване след
@@ -648,8 +652,9 @@
     findingFn = false;
   };
 
-  const chooseFn = async (zone) => {
+  const chooseFn = async (zone, state) => {
     cancelFindFn();
+    diagnostics.fnAnswer = zone || state;
     if (zone) {
       fnZone = zone;
       try {
@@ -660,9 +665,10 @@
     }
     diagnostics.fnZone = fnZone;
     if (keyboard) await applyLighting();
-    setLog(zone
-      ? 'Fn е намерен – вече се оцветява като останалите клавиши.'
-      : 'Fn не е в тези зони. Прати ми „Техническа информация“ и ще потърся другаде.');
+    const notFound = state === 'white'
+      ? 'Fn свети бяло – значи има своя зона извън пробваните. Прати ми „Техническа информация“.'
+      : 'Fn угасна с всички клавиши – значи е в зона, която е боядисана заедно с друг клавиш. Прати ми „Техническа информация“.';
+    setLog(zone ? 'Fn е намерен – вече се оцветява като останалите клавиши.' : notFound);
   };
 
   // automatic: при отваряне на страницата или включване – тихо, само за G515
@@ -850,7 +856,7 @@
     const action = event.target.closest('[data-device-action]')?.dataset.deviceAction;
     if (action) actions[action]();
     const fnChoice = event.target.closest('[data-fn-zone]');
-    if (fnChoice) run(() => chooseFn(Number(fnChoice.dataset.fnZone)))();
+    if (fnChoice) run(() => chooseFn(Number(fnChoice.dataset.fnZone), fnChoice.dataset.fnState))();
   });
 
   [idleSelect, sleepSelect].forEach((select) => {
