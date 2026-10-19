@@ -41,10 +41,12 @@
     Ctrl: 104, Shift: 105, Alt: 106, Win: 107, 'Ctrl#2': 108, 'Shift#2': 109, 'Alt#2': 110, 'Win#2': 111
   };
 
-  // Fn няма HID код и зоната му не е описана никъде. „Намери Fn“ запалва зоните, които клавиатурата обявява,
+  // Fn няма HID код и зоната му не е описана никъде. На G515 LS TKL е 111 (мястото на десния Win, проверено
+  // на клавиатурата) – това е стандартът. „Намери Fn“ остава за други модели: запалва зоните, които клавиатурата обявява,
   // но може да нямат клавиш на TKL (98 е Menu, ако го има), в различни цветове – потребителят посочва цвета
   // на Fn и изборът се помни. Зони 1–79, 104–110 са на познати клавиши и не се пробват.
   const FN_KEY = 'rgb-changer-g515-fn-zone';
+  const DEFAULT_FN_ZONE = 111;
   const FN_CANDIDATES = [
     { zone: 111, color: '#ff1744', name: 'червено' },
     { zone: 254, color: '#00e676', name: 'зелено' },
@@ -59,9 +61,9 @@
   ];
   const readFnZone = () => {
     try {
-      return Number(localStorage.getItem(FN_KEY)) || null;
+      return Number(localStorage.getItem(FN_KEY)) || DEFAULT_FN_ZONE;
     } catch {
-      return null;
+      return DEFAULT_FN_ZONE;
     }
   };
   let fnZone = readFnZone();
