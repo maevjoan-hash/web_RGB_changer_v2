@@ -118,6 +118,7 @@ if (connectedDevicesBtn) {
   deviceStatus.hidden = true;
   (connectedDevicesBtn.closest('.app-header') || connectedDevicesBtn).after(deviceStatus);
 
+  const { t } = I18n;
   const showStatus = (message, isError = false) => {
     deviceStatus.textContent = message;
     deviceStatus.classList.toggle('device-status--error', isError);
@@ -126,12 +127,12 @@ if (connectedDevicesBtn) {
 
   connectedDevicesBtn.addEventListener('click', async () => {
     if (!navigator.hid) {
-      showStatus('Браузърът не поддържа WebHID. Използвай Chrome или Edge.', true);
+      showStatus(t('Браузърът не поддържа WebHID. Използвай Chrome или Edge.'), true);
       return;
     }
 
     if (!window.isSecureContext) {
-      showStatus('WebHID работи само през https:// или http://localhost.', true);
+      showStatus(t('WebHID работи само през https:// или http://localhost.'), true);
       return;
     }
 
@@ -139,15 +140,15 @@ if (connectedDevicesBtn) {
       const devices = await navigator.hid.requestDevice({ filters: [] });
 
       if (devices.length === 0) {
-        showStatus('Не е избрано устройство.');
+        showStatus(t('Не е избрано устройство.'));
         return;
       }
 
-      const names = devices.map((device) => device.productName || 'Неизвестно устройство');
-      showStatus(`Свързани устройства: ${[...new Set(names)].join(', ')}`);
+      const names = devices.map((device) => device.productName || t('Неизвестно устройство'));
+      showStatus(t('Свързани устройства: {devices}', { devices: [...new Set(names)].join(', ') }));
     } catch (error) {
       console.error(error);
-      showStatus('Възникна грешка при търсенето на устройства.', true);
+      showStatus(t('Възникна грешка при търсенето на устройства.'), true);
     }
   });
 }

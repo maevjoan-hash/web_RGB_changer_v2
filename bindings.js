@@ -3,6 +3,7 @@
 // изпраща едва след връзка през WebHID с протокола на конкретния производител, затова тук
 // „Изпробвай“ само показва действието (а медийните действия пускат демо мелодия).
 (() => {
+  const { t } = I18n;
   const device = document.querySelector('.keyboard, .mouse-svg');
   const bindingsTab = document.querySelector('.settings-tab[data-tab="5"]');
   const bindingsColumn = bindingsTab?.closest('.settings-menu');
@@ -15,48 +16,48 @@
   const storageKey = `rgb-changer-bindings:${device.dataset.storageId || location.pathname.split('/').pop()}`;
 
   const MEDIA_ACTIONS = {
-    'play-pause': 'Пусни / пауза',
-    next: 'Следваща песен',
-    prev: 'Предишна песен',
-    stop: 'Стоп',
-    'volume-up': 'Звук +',
-    'volume-down': 'Звук −',
-    mute: 'Без звук'
+    'play-pause': t('Пусни / пауза'),
+    next: t('Следваща песен'),
+    prev: t('Предишна песен'),
+    stop: t('Стоп'),
+    'volume-up': t('Звук +'),
+    'volume-down': t('Звук −'),
+    mute: t('Без звук')
   };
 
   const MOUSE_ACTIONS = {
-    left: 'Ляв клик',
-    right: 'Десен клик',
-    middle: 'Среден клик',
-    double: 'Двоен клик',
-    back: 'Назад (браузър)',
-    forward: 'Напред (браузър)',
+    left: t('Ляв клик'),
+    right: t('Десен клик'),
+    middle: t('Среден клик'),
+    double: t('Двоен клик'),
+    back: t('Назад (браузър)'),
+    forward: t('Напред (браузър)'),
     'dpi-up': 'DPI +',
     'dpi-down': 'DPI −',
-    sniper: 'Нисък DPI докато е натиснат',
-    'rapid-fire': 'Бърза стрелба (повтаря клик)'
+    sniper: t('Нисък DPI докато е натиснат'),
+    'rapid-fire': t('Бърза стрелба (повтаря клик)')
   };
 
   const SHORTCUTS = {
-    copy: ['Копирай', 'Ctrl + C'],
-    paste: ['Постави', 'Ctrl + V'],
-    cut: ['Изрежи', 'Ctrl + X'],
-    undo: ['Отмени', 'Ctrl + Z'],
-    'switch-window': ['Смени прозореца', 'Alt + Tab'],
-    screenshot: ['Снимка на част от екрана', 'Win + Shift + S'],
-    desktop: ['Покажи работния плот', 'Win + D'],
-    'task-manager': ['Диспечер на задачите', 'Ctrl + Shift + Esc'],
-    lock: ['Заключи компютъра', 'Win + L']
+    copy: [t('Копирай'), 'Ctrl + C'],
+    paste: [t('Постави'), 'Ctrl + V'],
+    cut: [t('Изрежи'), 'Ctrl + X'],
+    undo: [t('Отмени'), 'Ctrl + Z'],
+    'switch-window': [t('Смени прозореца'), 'Alt + Tab'],
+    screenshot: [t('Снимка на част от екрана'), 'Win + Shift + S'],
+    desktop: [t('Покажи работния плот'), 'Win + D'],
+    'task-manager': [t('Диспечер на задачите'), 'Ctrl + Shift + Esc'],
+    lock: [t('Заключи компютъра'), 'Win + L']
   };
 
   const BINDING_TYPES = {
-    default: 'Оригинална функция',
-    combo: 'Клавиш или комбинация',
-    macro: 'Макро (поредица от клавиши)',
-    shortcut: 'Бърза команда',
-    media: 'Медия (музика и звук)',
-    mouse: 'Функция на мишката',
-    disabled: 'Изключен бутон'
+    default: t('Оригинална функция'),
+    combo: t('Клавиш или комбинация'),
+    macro: t('Макро (поредица от клавиши)'),
+    shortcut: t('Бърза команда'),
+    media: t('Медия (музика и звук)'),
+    mouse: t('Функция на мишката'),
+    disabled: t('Изключен бутон')
   };
 
   const MACRO_MAX_STEPS = 16;
@@ -102,8 +103,9 @@
 
     const label = el.getAttribute('aria-label') || '';
     if (MOUSE_DEFAULTS[id]) return { type: 'mouse', value: MOUSE_DEFAULTS[id] };
-    if (label.includes('Назад')) return { type: 'mouse', value: 'back' };
-    if (label.includes('Напред')) return { type: 'mouse', value: 'forward' };
+    // aria-label вече е преведен от I18n.translateTree(), затова се сравнява и с превода на целия надпис
+    if (label.includes('Назад') || label === t('Страничен бутон Назад')) return { type: 'mouse', value: 'back' };
+    if (label.includes('Напред') || label === t('Страничен бутон Напред')) return { type: 'mouse', value: 'forward' };
     return { type: 'none' };
   };
 
@@ -112,7 +114,7 @@
       case 'combo':
         return binding.value;
       case 'macro':
-        return `Макро: ${binding.value.join(' → ')}`;
+        return t('Макро: {steps}', { steps: binding.value.join(' → ') });
       case 'shortcut':
         return `${SHORTCUTS[binding.value][0]} (${SHORTCUTS[binding.value][1]})`;
       case 'media':
@@ -120,9 +122,9 @@
       case 'mouse':
         return MOUSE_ACTIONS[binding.value];
       case 'disabled':
-        return 'Изключен';
+        return t('Изключен');
       default:
-        return 'Без функция';
+        return t('Без функция');
     }
   };
 
@@ -204,9 +206,9 @@
   // Кратки мелодии, генерирани с Web Audio, за да се чуе какво прави бутонът
   const player = (() => {
     const TRACKS = [
-      { name: 'Космическа мелодия', notes: [262, 330, 392, 523, 392, 330] },
-      { name: 'Неонов ритъм', notes: [220, 277, 330, 440, 330, 277] },
-      { name: 'Нощно каране', notes: [196, 247, 294, 392, 294, 247] }
+      { name: t('Космическа мелодия'), notes: [262, 330, 392, 523, 392, 330] },
+      { name: t('Неонов ритъм'), notes: [220, 277, 330, 440, 330, 277] },
+      { name: t('Нощно каране'), notes: [196, 247, 294, 392, 294, 247] }
     ];
     let audio = null;
     let output = null;
@@ -261,13 +263,13 @@
     };
 
     const status = () => {
-      const sound = muted ? 'без звук' : `звук ${Math.round(volume * 100)}%`;
+      const sound = muted ? t('без звук') : t('звук {volume}%', { volume: Math.round(volume * 100) });
       return `${timer ? '▶' : '⏸'} ${TRACKS[track].name} · ${sound}`;
     };
 
     return {
       run(action) {
-        if (!window.AudioContext) return 'Браузърът не поддържа Web Audio.';
+        if (!window.AudioContext) return t('Браузърът не поддържа Web Audio.');
 
         if (action === 'play-pause') {
           if (timer) pause();
@@ -324,15 +326,15 @@
     } else if (binding.type === 'macro') {
       binding.value.forEach((step, index) => {
         macroTimers.push(setTimeout(() => {
-          showToast(`Макро ${index + 1}/${binding.value.length}: ${step}`);
+          showToast(t('Макро {step}/{total}: {keys}', { step: index + 1, total: binding.value.length, keys: step }));
         }, index * 450));
       });
     } else if (binding.type === 'disabled') {
-      showToast('Бутонът е изключен и не прави нищо.');
+      showToast(t('Бутонът е изключен и не прави нищо.'));
     } else if (binding.type === 'none') {
-      showToast('Този бутон няма функция по подразбиране.');
+      showToast(t('Този бутон няма функция по подразбиране.'));
     } else {
-      showToast(`Изпълнява: ${describe(binding)}`);
+      showToast(t('Изпълнява: {action}', { action: describe(binding) }));
     }
   };
 
@@ -397,7 +399,9 @@
   let recording = null;
 
   // --- ПАНЕЛ ---
-  const deviceName = isKeyboard ? 'клавиш от клавиатурата' : 'бутон от мишката';
+  const noTargetText = isKeyboard
+    ? t('Няма избран бутон. Кликни клавиш от клавиатурата.')
+    : t('Няма избран бутон. Кликни бутон от мишката.');
   const optionsHtml = (entries) => entries.map(([value, label]) => `<option value="${value}">${label}</option>`).join('');
 
   const panel = document.createElement('div');
@@ -409,51 +413,51 @@
     <p class="binding-target" id="binding-target"></p>
 
     <div class="binding-editor" id="binding-editor">
-      <p class="binding-current">Сега прави: <strong id="binding-current"></strong></p>
+      <p class="binding-current">${t('Сега прави:')} <strong id="binding-current"></strong></p>
 
       <label class="field">
-        <span class="field__label">Нова функция</span>
+        <span class="field__label">${t('Нова функция')}</span>
         <select class="field__select" id="binding-type">${optionsHtml(Object.entries(BINDING_TYPES))}</select>
       </label>
 
       <div class="binding-field" data-binding-field="combo">
-        <button type="button" class="panel-btn" data-binding-action="record-combo">Запиши комбинация</button>
+        <button type="button" class="panel-btn" data-binding-action="record-combo">${t('Запиши комбинация')}</button>
         <span class="binding-recorded" id="binding-combo-value"></span>
       </div>
 
       <div class="binding-field" data-binding-field="macro">
-        <button type="button" class="panel-btn" data-binding-action="record-macro">Запиши макро</button>
-        <button type="button" class="panel-btn" data-binding-action="stop-macro">Спри записа</button>
+        <button type="button" class="panel-btn" data-binding-action="record-macro">${t('Запиши макро')}</button>
+        <button type="button" class="panel-btn" data-binding-action="stop-macro">${t('Спри записа')}</button>
         <span class="binding-recorded" id="binding-macro-value"></span>
       </div>
 
       <label class="field" data-binding-field="shortcut">
-        <span class="field__label">Команда</span>
+        <span class="field__label">${t('Команда')}</span>
         <select class="field__select" id="binding-shortcut">
           ${optionsHtml(Object.entries(SHORTCUTS).map(([id, [name, keys]]) => [id, `${name} (${keys})`]))}
         </select>
       </label>
 
       <label class="field" data-binding-field="media">
-        <span class="field__label">Медийно действие</span>
+        <span class="field__label">${t('Медийно действие')}</span>
         <select class="field__select" id="binding-media">${optionsHtml(Object.entries(MEDIA_ACTIONS))}</select>
       </label>
 
       <label class="field" data-binding-field="mouse">
-        <span class="field__label">Действие на мишката</span>
+        <span class="field__label">${t('Действие на мишката')}</span>
         <select class="field__select" id="binding-mouse">${optionsHtml(Object.entries(MOUSE_ACTIONS))}</select>
       </label>
 
       <p class="panel-note" id="binding-note" hidden></p>
 
       <div class="panel-actions">
-        <button type="button" class="panel-btn" data-binding-action="test">Изпробвай</button>
-        <button type="button" class="panel-btn" data-binding-action="reset">Върни оригинала</button>
+        <button type="button" class="panel-btn" data-binding-action="test">${t('Изпробвай')}</button>
+        <button type="button" class="panel-btn" data-binding-action="reset">${t('Върни оригинала')}</button>
       </div>
     </div>
 
     <div class="binding-summary">
-      <p class="field__label">Зададени функции</p>
+      <p class="field__label">${t('Зададени функции')}</p>
       <ul class="binding-list" id="binding-list"></ul>
     </div>
   `;
@@ -512,7 +516,7 @@
     const target = selectedId ? findTarget(selectedId) : null;
     const bindings = profileBindings();
 
-    profileText.textContent = `Профил ${Number(activeProfile()) + 1}`;
+    profileText.textContent = t('Профил {n}', { n: Number(activeProfile()) + 1 });
 
     targets.forEach(({ id, el }) => {
       el.classList.toggle('is-binding-target', id === selectedId);
@@ -520,7 +524,7 @@
     });
 
     editor.hidden = !target;
-    targetText.textContent = target ? `Избран бутон: ${target.name}` : `Няма избран бутон. Кликни ${deviceName}.`;
+    targetText.textContent = target ? t('Избран бутон: {name}', { name: target.name }) : noTargetText;
 
     list.replaceChildren(...Object.entries(bindings).map(([id, binding]) => {
       const item = document.createElement('li');
@@ -533,7 +537,7 @@
       remove.type = 'button';
       remove.className = 'binding-list__remove';
       remove.dataset.bindingRemove = id;
-      remove.setAttribute('aria-label', `Върни оригинала на ${id}`);
+      remove.setAttribute('aria-label', t('Върни оригинала на {button}', { button: id }));
       remove.textContent = '×';
       item.append(select, remove);
       return item;
@@ -541,7 +545,7 @@
     if (list.children.length === 0) {
       const empty = document.createElement('li');
       empty.className = 'binding-list__empty';
-      empty.textContent = 'Все още няма променени бутони.';
+      empty.textContent = t('Все още няма променени бутони.');
       list.append(empty);
     }
 
@@ -549,7 +553,7 @@
 
     const saved = bindings[target.id];
     const type = draftType || (saved ? saved.type : 'default');
-    currentText.textContent = saved ? describe(saved) : `${describe(defaultBinding(target))} (оригинал)`;
+    currentText.textContent = saved ? describe(saved) : t('{action} (оригинал)', { action: describe(defaultBinding(target)) });
     typeSelect.value = type;
     fields.forEach((field) => {
       field.hidden = field.dataset.bindingField !== type;
@@ -561,7 +565,7 @@
 
     const isRecordingCombo = recording?.mode === 'combo';
     const isRecordingMacro = recording?.mode === 'macro';
-    recordComboButton.textContent = isRecordingCombo ? 'Натисни клавишите…' : 'Запиши комбинация';
+    recordComboButton.textContent = isRecordingCombo ? t('Натисни клавишите…') : t('Запиши комбинация');
     recordMacroButton.disabled = isRecordingMacro;
     stopMacroButton.hidden = !isRecordingMacro;
     comboValue.textContent = saved?.type === 'combo' ? saved.value : '';
@@ -571,8 +575,8 @@
 
     note.hidden = !recording;
     note.textContent = isRecordingMacro
-      ? `Натискай клавишите поред (до ${MACRO_MAX_STEPS}), после „Спри записа“.`
-      : 'Натисни клавиша или комбинацията. Някои комбинации (напр. Ctrl + W) браузърът не позволява да се запишат.';
+      ? t('Натискай клавишите поред (до {max}), после „Спри записа“.', { max: MACRO_MAX_STEPS })
+      : t('Натисни клавиша или комбинацията. Някои комбинации (напр. Ctrl + W) браузърът не позволява да се запишат.');
   };
 
   const selectTarget = (id) => {
@@ -739,7 +743,7 @@
       id: target.id,
       name: target.name,
       binding: binding || null,
-      description: saved ? describe(saved) : 'Оригинална функция',
+      description: saved ? describe(saved) : t('Оригинална функция'),
       defaultBinding: defaultBinding(target)
     };
   });

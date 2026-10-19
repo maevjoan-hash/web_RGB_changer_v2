@@ -3,6 +3,7 @@
 // какво поддържа камерата, а applyConstraints() го променя. Без инсталиране и без протокол на конкретна марка.
 // Настройките се пазят по профили за всяка камера и се прилагат при пускане.
 (() => {
+  const { t } = I18n;
   const video = document.querySelector('#webcam-video');
   const bar = document.querySelector('[data-device-actions]');
   const profilesBar = document.querySelector('[data-profiles]');
@@ -11,24 +12,24 @@
 
   const STORAGE_KEY = 'rgb-changer-webcam';
   const PROFILE_COUNT = 3;
-  const MODE_LABELS = { continuous: 'Автоматичен', manual: 'Ръчен', 'single-shot': 'Еднократен', none: 'Без' };
+  const MODE_LABELS = { continuous: t('Автоматичен'), manual: t('Ръчен'), 'single-shot': t('Еднократен'), none: t('Без') };
   // manual: коя настройка за режим трябва да е „manual“, за да има ефект тази стойност
   const CONTROLS = [
-    { key: 'brightness', label: 'Яркост', panel: 1 },
-    { key: 'contrast', label: 'Контраст', panel: 1 },
-    { key: 'saturation', label: 'Наситеност', panel: 1 },
-    { key: 'sharpness', label: 'Острота', panel: 1 },
-    { key: 'backgroundBlur', label: 'Размазан фон', panel: 1, toggle: true },
-    { key: 'exposureMode', label: 'Експонация', panel: 2, mode: true },
-    { key: 'exposureTime', label: 'Време на експонация', panel: 2, manual: 'exposureMode' },
-    { key: 'exposureCompensation', label: 'Корекция на експонацията', panel: 2 },
-    { key: 'whiteBalanceMode', label: 'Баланс на бялото', panel: 2, mode: true },
-    { key: 'colorTemperature', label: 'Цветна температура', panel: 2, manual: 'whiteBalanceMode', unit: 'K' },
-    { key: 'focusMode', label: 'Фокус', panel: 3, mode: true },
-    { key: 'focusDistance', label: 'Разстояние на фокуса', panel: 3, manual: 'focusMode' },
-    { key: 'zoom', label: 'Мащаб', panel: 3 },
-    { key: 'pan', label: 'Завъртане наляво/надясно', panel: 3 },
-    { key: 'tilt', label: 'Наклон нагоре/надолу', panel: 3 }
+    { key: 'brightness', label: t('Яркост'), panel: 1 },
+    { key: 'contrast', label: t('Контраст'), panel: 1 },
+    { key: 'saturation', label: t('Наситеност'), panel: 1 },
+    { key: 'sharpness', label: t('Острота'), panel: 1 },
+    { key: 'backgroundBlur', label: t('Размазан фон'), panel: 1, toggle: true },
+    { key: 'exposureMode', label: t('Експонация'), panel: 2, mode: true },
+    { key: 'exposureTime', label: t('Време на експонация'), panel: 2, manual: 'exposureMode' },
+    { key: 'exposureCompensation', label: t('Корекция на експонацията'), panel: 2 },
+    { key: 'whiteBalanceMode', label: t('Баланс на бялото'), panel: 2, mode: true },
+    { key: 'colorTemperature', label: t('Цветна температура'), panel: 2, manual: 'whiteBalanceMode', unit: 'K' },
+    { key: 'focusMode', label: t('Фокус'), panel: 3, mode: true },
+    { key: 'focusDistance', label: t('Разстояние на фокуса'), panel: 3, manual: 'focusMode' },
+    { key: 'zoom', label: t('Мащаб'), panel: 3 },
+    { key: 'pan', label: t('Завъртане наляво/надясно'), panel: 3 },
+    { key: 'tilt', label: t('Наклон нагоре/надолу'), panel: 3 }
   ];
   const RESOLUTIONS = [[640, 480], [1280, 720], [1920, 1080], [2560, 1440], [3840, 2160]];
   const FRAME_RATES = [15, 24, 30, 60];
@@ -37,34 +38,34 @@
   const [imagePanels, cameraPanels] = [...columns].map((column) => column.querySelector('.settings-panels'));
   const controlPanel = (panel) => `
     <div class="settings-panel" data-panel="${panel}">
-      <p class="settings-hint" data-cam-hint>Пусни камерата, за да видиш настройките, които поддържа.</p>
+      <p class="settings-hint" data-cam-hint>${t('Пусни камерата, за да видиш настройките, които поддържа.')}</p>
       <div class="webcam-controls" data-controls="${panel}"></div>
     </div>`;
   imagePanels.innerHTML = controlPanel(1) + controlPanel(2);
   cameraPanels.innerHTML = `${controlPanel(3)}
     <div class="settings-panel" data-panel="4">
       <label class="field">
-        <span class="field__label">Камера</span>
-        <select class="field__select" id="cam-device"><option value="">По подразбиране</option></select>
+        <span class="field__label">${t('Камера')}</span>
+        <select class="field__select" id="cam-device"><option value="">${t('По подразбиране')}</option></select>
       </label>
       <div class="webcam-row">
         <label class="field">
-          <span class="field__label">Резолюция</span>
+          <span class="field__label">${t('Резолюция')}</span>
           <select class="field__select" id="cam-resolution"></select>
         </label>
         <label class="field">
-          <span class="field__label">Кадри в секунда</span>
+          <span class="field__label">${t('Кадри в секунда')}</span>
           <select class="field__select" id="cam-fps"></select>
         </label>
       </div>
       <label class="hp-toggle">
         <input type="checkbox" id="cam-mirror" />
-        <span>Огледален образ<small>Само за показване тук и за снимките</small></span>
+        <span>${t('Огледален образ')}<small>${t('Само за показване тук и за снимките')}</small></span>
       </label>
       <dl class="hp-info">
-        <dt>Камера</dt><dd id="cam-info-name">–</dd>
-        <dt>Образ</dt><dd id="cam-info-format">–</dd>
-        <dt>Настройки</dt><dd id="cam-info-controls">–</dd>
+        <dt>${t('Камера')}</dt><dd id="cam-info-name">–</dd>
+        <dt>${t('Образ')}</dt><dd id="cam-info-format">–</dd>
+        <dt>${t('Настройки')}</dt><dd id="cam-info-controls">–</dd>
       </dl>
     </div>`;
 
@@ -87,15 +88,15 @@
   bar.innerHTML = `
     <div class="device-bar">
       <div class="panel-actions save-bar__row">
-        <button type="button" class="panel-btn panel-btn--primary" data-cam-action="start">Пусни камерата</button>
+        <button type="button" class="panel-btn panel-btn--primary" data-cam-action="start">${t('Пусни камерата')}</button>
         <span class="save-bar__group" data-running hidden>
-          <button type="button" class="panel-btn panel-btn--primary" data-cam-action="snapshot">Снимка</button>
+          <button type="button" class="panel-btn panel-btn--primary" data-cam-action="snapshot">${t('Снимка')}</button>
           <details class="action-menu">
-            <summary class="panel-btn">Още ▾</summary>
+            <summary class="panel-btn">${t('Още')} ▾</summary>
             <div class="action-menu__list">
-              <button type="button" class="panel-btn" data-cam-action="reset">Нулирай настройките на профила</button>
+              <button type="button" class="panel-btn" data-cam-action="reset">${t('Нулирай настройките на профила')}</button>
               <hr />
-              <button type="button" class="panel-btn panel-btn--danger" data-cam-action="stop">Спри камерата</button>
+              <button type="button" class="panel-btn panel-btn--danger" data-cam-action="stop">${t('Спри камерата')}</button>
             </div>
           </details>
         </span>
@@ -104,9 +105,9 @@
     </div>`;
   profilesBar.innerHTML = `
     <div class="panel-actions save-bar__row">
-      <div class="segmented" role="group" aria-label="Профили">
+      <div class="segmented" role="group" aria-label="${t('Профили')}">
         ${Array.from({ length: PROFILE_COUNT }, (_, index) =>
-          `<button type="button" class="panel-btn profile-btn" data-profile="${index}">Профил ${index + 1}</button>`).join('')}
+          `<button type="button" class="panel-btn profile-btn" data-profile="${index}">${t('Профил {n}', { n: index + 1 })}</button>`).join('')}
       </div>
     </div>`;
 
@@ -189,7 +190,7 @@
         </label>`;
       }).join('');
       const hint = holder.closest('.settings-panel').querySelector('[data-cam-hint]');
-      hint.textContent = 'Тази камера не поддържа тези настройки.';
+      hint.textContent = t('Тази камера не поддържа тези настройки.');
       hint.hidden = list.length > 0;
     }
     document.querySelectorAll('[data-control]').forEach((input) => {
@@ -243,13 +244,13 @@
     timers[key] = setTimeout(() => {
       apply(changes)
         .then(showSaved)
-        .catch((error) => setLog(`Камерата не прие „${control.label}“: ${error.message}`, true));
+        .catch((error) => setLog(t('Камерата не прие „{label}“: {error}', { label: control.label, error: error.message }), true));
     }, 60);
   };
 
   // Всяка промяна се пази веднага в профила – съобщението го показва
   const showSaved = () => {
-    setLog(`✓ Запазено в профил ${camera.active + 1}. Прилага се при всяко пускане на камерата.`);
+    setLog(t('✓ Запазено в профил {n}. Прилага се при всяко пускане на камерата.', { n: camera.active + 1 }));
   };
 
   function onControl(event) {
@@ -281,7 +282,7 @@
     renderProfiles();
     renderControls();
     await apply(profileValues()).catch((error) => setLog(error.message, true));
-    setLog(`Профил ${camera.active + 1} е приложен.`);
+    setLog(t('Профил {n} е приложен.', { n: camera.active + 1 }));
   });
 
   // --- КАМЕРА ---
@@ -303,7 +304,7 @@
   const listCameras = async () => {
     const cameras = (await navigator.mediaDevices.enumerateDevices()).filter((device) => device.kind === 'videoinput');
     deviceSelect.innerHTML = cameras.map((device, index) =>
-      `<option value="${device.deviceId}">${device.label || `Камера ${index + 1}`}</option>`).join('');
+      `<option value="${device.deviceId}">${device.label || t('Камера {n}', { n: index + 1 })}</option>`).join('');
     if (track) deviceSelect.value = track.getSettings().deviceId || deviceSelect.value;
   };
 
@@ -312,7 +313,7 @@
     const format = `${settings.width} × ${settings.height}${settings.frameRate ? ` · ${Math.round(settings.frameRate)} fps` : ''}`;
     $('#cam-info-name').textContent = track.label || '–';
     $('#cam-info-format').textContent = format;
-    $('#cam-info-controls').textContent = `${CONTROLS.filter(supported).length} от ${CONTROLS.length}`;
+    $('#cam-info-controls').textContent = t('{supported} от {total}', { supported: CONTROLS.filter(supported).length, total: CONTROLS.length });
     badge.textContent = format;
     badge.hidden = false;
   };
@@ -334,10 +335,10 @@
   };
 
   const start = async (deviceId = store.deviceId) => {
-    if (!navigator.mediaDevices?.getUserMedia) throw new Error('Браузърът не дава достъп до камерата.');
+    if (!navigator.mediaDevices?.getUserMedia) throw new Error(t('Браузърът не дава достъп до камерата.'));
     stop();
     const [width, height] = store.resolution.split('x').map(Number);
-    setLog('Пускам камерата…');
+    setLog(t('Пускам камерата…'));
     try {
       stream = await navigator.mediaDevices.getUserMedia({
         video: {
@@ -350,9 +351,9 @@
     } catch (error) {
       if (deviceId && error.name === 'OverconstrainedError') return start('');
       const messages = {
-        NotAllowedError: 'Достъпът до камерата е отказан. Разреши го от иконата до адреса.',
-        NotFoundError: 'Няма свързана камера.',
-        NotReadableError: 'Камерата се използва от друга програма.'
+        NotAllowedError: t('Достъпът до камерата е отказан. Разреши го от иконата до адреса.'),
+        NotFoundError: t('Няма свързана камера.'),
+        NotReadableError: t('Камерата се използва от друга програма.')
       };
       throw new Error(messages[error.name] || error.message);
     }
@@ -382,7 +383,9 @@
     await apply(profileValues()).catch(() => {});
     await listCameras();
     renderInfo();
-    setLog(`${track.label || 'Камерата'} е пусната. Настройките се прилагат веднага.`);
+    setLog(track.label
+      ? t('{name} е пусната. Настройките се прилагат веднага.', { name: track.label })
+      : t('Камерата е пусната. Настройките се прилагат веднага.'));
   };
 
   const snapshot = () => {
@@ -399,11 +402,11 @@
       const link = document.createElement('a');
       const stamp = new Date().toISOString().slice(0, 19).replace(/[-:T]/g, '');
       link.href = URL.createObjectURL(blob);
-      link.download = `snimka-${stamp}.png`;
+      link.download = `${t('snimka')}-${stamp}.png`;
       link.click();
       setTimeout(() => URL.revokeObjectURL(link.href), 1000);
     }, 'image/png');
-    setLog('Снимката е изтеглена.');
+    setLog(t('Снимката е изтеглена.'));
   };
 
   // --- СЪБИТИЯ ---
@@ -413,7 +416,7 @@
       stop();
       store.running = false;
       saveStore();
-      setLog('Камерата е спряна.');
+      setLog(t('Камерата е спряна.'));
     },
     snapshot,
     reset: async () => {
@@ -421,7 +424,7 @@
       saveStore();
       renderControls();
       await apply(camera.defaults);
-      setLog(`✓ Профил ${camera.active + 1} е върнат към началните настройки на камерата и е запазен.`);
+      setLog(t('✓ Профил {n} е върнат към началните настройки на камерата и е запазен.', { n: camera.active + 1 }));
     }
   };
   bar.addEventListener('click', async (event) => {
