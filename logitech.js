@@ -446,6 +446,7 @@ const LogitechButtons = (() => {
   if (!device || !panels || !tab) return;
 
   const MODE_ONBOARD = 0x01;
+  const MODE_HOST = 0x02;
 
   // Форматът на профила се различава между поколенията мишки и не е публично описан за всички.
   // Затова мястото на бутоните се намира във фабричния профил по първите два бутона
@@ -640,9 +641,14 @@ const LogitechButtons = (() => {
   let diagnostics = {};
   let busy = false;
 
+  // Последните съобщения влизат и в техническата информация
+  const events = [];
+
   const setLog = (message, isError = false) => {
     log.textContent = message;
     log.classList.toggle('device-log--error', isError);
+    events.push(`${new Date().toLocaleTimeString('bg-BG')}${isError ? ' [грешка]' : ''} ${message}`);
+    if (events.length > 30) events.shift();
   };
 
   const listItems = (items) => items.map((text) => {
@@ -972,16 +978,29 @@ const LogitechButtons = (() => {
       await mouse.writeSector(0x0000, LogitechHidpp.buildDirectory([{ sector, enabled: 1 }], info.sectorSize));
     }
 
+    // Мишката чете профила от паметта при смяна на режима, затова за миг минава в „управлявана
+    // от компютъра“ и обратно, после профилът се избира отново (само повторният избор не стига)
+    await mouse.setMode(MODE_HOST).catch((error) => {
+      diagnostics.hostModeError = error.message;
+    });
     await mouse.setMode(MODE_ONBOARD);
-    // Без повторен избор мишката може да продължи с профила, зареден преди записа
     await mouse.setCurrentProfile(sector).catch((error) => {
       diagnostics.setCurrentProfileError = error.message;
     });
     if (writeDpi) await mouse.setDpi(stages[chosenStage], dpiCaps).catch(() => {});
     await loadOnboard();
-    if (dpiCaps) await showCurrentDpi();
+    const actualDpi = dpiCaps ? await showCurrentDpi() : null;
     renderDevice();
     renderDpi();
+
+    // Проверка дали мишката наистина ползва новото ниво по подразбиране
+    const expectedDpi = writeDpi && layout.dpi.defaultIndexByte !== null ? stages[chosenStage] : null;
+    diagnostics.afterWrite = { sector, expectedDpi, actualDpi };
+    if (expectedDpi !== null && actualDpi !== expectedDpi) {
+      setLog(`Профилът е записан, но мишката още отчита ${actualDpi} DPI вместо ${expectedDpi}. ` +
+        'Изключи и включи мишката от копчето отдолу, за да зареди новите нива, и свържи пак.', true);
+      return;
+    }
 
     if (buttons === 'factory') {
       setLog('Фабричните бутони са върнати в мишката.');
@@ -1022,6 +1041,7 @@ const LogitechButtons = (() => {
           ([featureName, id]) => [featureName, mouse.featureIndexes.get(id) ?? 'не е проверена']
         ));
       }
+      diagnostics.events = events;
       await navigator.clipboard.writeText(JSON.stringify(diagnostics, null, 2));
       setLog('Техническата информация е копирана. Изпрати я, за да се добави поддръжка за тази мишка.');
     }),
