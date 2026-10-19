@@ -90,16 +90,24 @@
         <button type="button" class="panel-btn panel-btn--primary" data-cam-action="start">Пусни камерата</button>
         <span class="save-bar__group" data-running hidden>
           <button type="button" class="panel-btn panel-btn--primary" data-cam-action="snapshot">Снимка</button>
-          <button type="button" class="panel-btn" data-cam-action="reset">Нулирай настройките</button>
-          <button type="button" class="panel-btn" data-cam-action="stop">Спри камерата</button>
+          <details class="action-menu">
+            <summary class="panel-btn">Още ▾</summary>
+            <div class="action-menu__list">
+              <button type="button" class="panel-btn" data-cam-action="reset">Нулирай настройките на профила</button>
+              <hr />
+              <button type="button" class="panel-btn panel-btn--danger" data-cam-action="stop">Спри камерата</button>
+            </div>
+          </details>
         </span>
       </div>
       <p class="device-log" id="device-log" role="status"></p>
     </div>`;
   profilesBar.innerHTML = `
-    <div class="panel-actions save-bar__row" role="group" aria-label="Профили">
-      ${Array.from({ length: PROFILE_COUNT }, (_, index) =>
-        `<button type="button" class="panel-btn profile-btn" data-profile="${index}">Профил ${index + 1}</button>`).join('')}
+    <div class="panel-actions save-bar__row">
+      <div class="segmented" role="group" aria-label="Профили">
+        ${Array.from({ length: PROFILE_COUNT }, (_, index) =>
+          `<button type="button" class="panel-btn profile-btn" data-profile="${index}">Профил ${index + 1}</button>`).join('')}
+      </div>
     </div>`;
 
   const $ = (selector) => document.querySelector(selector);

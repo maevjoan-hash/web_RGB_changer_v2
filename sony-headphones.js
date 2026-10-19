@@ -353,8 +353,14 @@ class SonyHeadphones {
         <button type="button" class="panel-btn panel-btn--primary" data-hp-action="connect">Свържи слушалките</button>
         <span class="save-bar__group" data-connected hidden>
           <button type="button" class="panel-btn" data-hp-action="refresh">Обнови</button>
-          <button type="button" class="panel-btn" data-hp-action="copy-diagnostics">Техническа информация</button>
-          <button type="button" class="panel-btn" data-hp-action="disconnect">Прекъсни</button>
+          <details class="action-menu">
+            <summary class="panel-btn">Още ▾</summary>
+            <div class="action-menu__list">
+              <button type="button" class="panel-btn" data-hp-action="copy-diagnostics">Техническа информация</button>
+              <hr />
+              <button type="button" class="panel-btn panel-btn--danger" data-hp-action="disconnect">Прекъсни</button>
+            </div>
+          </details>
         </span>
       </div>
       <p class="device-log" id="device-log" role="status"></p>

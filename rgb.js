@@ -162,14 +162,15 @@
   const profilesBar = document.querySelector('[data-profiles]') || panels;
   const profileControls = document.createElement('div');
   profileControls.className = 'panel-actions save-bar__row';
-  profileControls.setAttribute('role', 'group');
-  profileControls.setAttribute('aria-label', 'Профили');
   profileControls.innerHTML = `
-    ${Array.from(
-      { length: PROFILE_COUNT },
-      (_, index) => `<button type="button" class="panel-btn profile-btn" data-profile="${index}">Профил ${index + 1}</button>`
-    ).join('')}
-    <button type="button" class="panel-btn" data-action="reset-profile">Нулирай профила</button>
+    <div class="segmented" role="group" aria-label="Профили">
+      ${Array.from(
+        { length: PROFILE_COUNT },
+        (_, index) => `<button type="button" class="panel-btn profile-btn" data-profile="${index}">Профил ${index + 1}</button>`
+      ).join('')}
+    </div>
+    <button type="button" class="panel-btn icon-btn" data-action="reset-profile" title="Нулирай профила"
+      aria-label="Нулирай профила">↺</button>
   `;
   profilesBar.append(profileControls);
 
