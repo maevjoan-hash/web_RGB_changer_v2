@@ -546,8 +546,6 @@ const LogitechButtons = (() => {
   panel.hidden = true;
   tab.setAttribute('aria-controls', panel.id);
   panel.innerHTML = `
-    <p class="settings-hint">Свържи Logitech мишка (напр. G309), за да запишеш DPI и функциите на бутоните
-      в паметта ѝ. Нужен е Chrome или Edge на компютър. При Bluetooth мишката трябва първо да е сдвоена със системата.</p>
     <div class="panel-actions">
       <button type="button" class="panel-btn" data-device-action="connect">Свържи мишката</button>
       <button type="button" class="panel-btn" data-device-action="disconnect" hidden>Прекъсни</button>
@@ -755,11 +753,9 @@ const LogitechButtons = (() => {
     applyDpiButton.hidden = canSwitch;
     if (!hasStages) return;
 
-    dpiStagesHint.textContent = 'Бутонът DPI на мишката сменя тези нива. Празно поле = нивото е изключено. ' +
-      (canSwitch ? '„Включи“ сменя нивото веднага. ' : '') +
-      (layout.defaultIndexByte !== null
-        ? 'Кръгчето отбелязва нивото по подразбиране.'
-        : 'Кръгчето избира нивото за „Приложи веднага“ (нивото по подразбиране се определя от мишката).');
+    dpiStagesHint.textContent = layout.defaultIndexByte !== null
+      ? 'Празно поле = изключено ниво · кръгче = по подразбиране'
+      : 'Празно поле = изключено ниво';
 
     const source = onboard.userEntry ? onboard.profile : onboard.factory;
     const stages = readDpiStages(source, layout);

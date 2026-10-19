@@ -109,13 +109,11 @@
   };
 
   // --- ПАНЕЛИ С НАСТРОЙКИ ---
-  const ledName = isKeyboard ? 'клавиши' : 'бутони или светещи зони';
 
   const panels = document.createElement('div');
   panels.className = 'settings-panels';
   panels.innerHTML = `
     <div class="settings-panel" data-panel="1">
-      <p class="settings-hint">Кликни върху ${ledName}, за да ги избереш. Без избор цветът се прилага към цялото устройство.</p>
       <div class="color-row">
         <label class="color-picker">
           <input type="color" id="rgb-color-input" />
@@ -156,11 +154,9 @@
         <span class="range-field__label">Скорост на ефекта <output id="rgb-speed-value"></output></span>
         <input type="range" id="rgb-speed" min="1" max="10" step="1" />
       </label>
-      <p class="panel-note" id="rgb-speed-note" hidden>Скоростта важи за ефектите Дишане, Вълна и Дъга.</p>
     </div>
 
     <div class="settings-panel" data-panel="4">
-      <p class="settings-hint">Всеки профил пази собствени цветове, ефект и функции на бутоните. Промените се запазват автоматично.</p>
       <div class="panel-actions" role="group" aria-label="Профили">
         ${Array.from(
           { length: PROFILE_COUNT },
@@ -183,7 +179,6 @@
   const brightnessValue = panels.querySelector('#rgb-brightness-value');
   const speedInput = panels.querySelector('#rgb-speed');
   const speedValue = panels.querySelector('#rgb-speed-value');
-  const speedNote = panels.querySelector('#rgb-speed-note');
   const effectInputs = panels.querySelectorAll('input[name="rgb-effect"]');
   const profileButtons = panels.querySelectorAll('.profile-btn');
 
@@ -378,7 +373,6 @@
     speedInput.value = profile.speed;
     speedValue.textContent = profile.speed;
     speedInput.disabled = !effect.usesSpeed;
-    speedNote.hidden = effect.usesSpeed;
 
     profileButtons.forEach((button) => {
       button.setAttribute('aria-pressed', String(Number(button.dataset.profile) === state.active));
