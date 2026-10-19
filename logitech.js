@@ -234,6 +234,16 @@ const LogitechHidpp = (() => {
       await this.call(FEATURES.ONBOARD_PROFILES, 0x30, [sector >> 8, sector & 0xff]);
     }
 
+    // Текущо DPI ниво (0–4) в режим „профил от паметта“ – същото, което сменя бутонът DPI на мишката
+    async readCurrentDpiIndex() {
+      const [index] = await this.call(FEATURES.ONBOARD_PROFILES, 0xb0);
+      return index;
+    }
+
+    async setCurrentDpiIndex(index) {
+      await this.call(FEATURES.ONBOARD_PROFILES, 0xc0, [index]);
+    }
+
     async readSector(sector, size) {
       const bytes = new Uint8Array(size);
       for (let offset = 0; offset < size; offset += 16) {
@@ -607,6 +617,7 @@ const LogitechButtons = (() => {
   const dpiStagesHint = panel.querySelector('#device-dpi-stages-hint');
   const dpiSingle = panel.querySelector('#device-dpi-single');
   const writeDpiButton = panel.querySelector('#device-write-dpi');
+  const applyDpiButton = panel.querySelector('[data-device-action="apply-dpi"]');
   const buttonsBlock = panel.querySelector('#device-buttons-block');
   const buttonsList = panel.querySelector('#device-buttons');
   const planTitle = panel.querySelector('#device-plan-title');
@@ -721,17 +732,31 @@ const LogitechButtons = (() => {
     ]));
   };
 
-  // Нивата на DPI от активния профил; радио бутонът избира нивото по подразбиране (и за „Приложи веднага“)
+  // В режим „профил от паметта“ текущото ниво се чете и сменя директно (0x8100, функции 0xB0/0xC0)
+  const usesOnboardStages = () => Boolean(dpiCaps && onboard?.layout.dpi && onboard.mode === MODE_ONBOARD);
+  const storedStages = () => readDpiStages(onboard.userEntry ? onboard.profile : onboard.factory, onboard.layout.dpi);
+  let currentStage = null;
+
+  const markActiveStage = () => {
+    dpiStages.querySelectorAll('.dpi-stage').forEach((row, slot) => {
+      row.classList.toggle('is-active-stage', slot === currentStage);
+    });
+  };
+
+  // Нивата на DPI от активния профил; кръгчето отбелязва нивото по подразбиране, „Включи“ сменя нивото веднага
   const renderDpi = () => {
     const layout = onboard?.layout.dpi;
     const hasStages = Boolean(dpiCaps && layout);
+    const canSwitch = usesOnboardStages();
     dpiStages.hidden = !hasStages;
     dpiStagesHint.hidden = !hasStages;
     dpiSingle.hidden = hasStages;
     writeDpiButton.hidden = !hasStages;
+    applyDpiButton.hidden = canSwitch;
     if (!hasStages) return;
 
     dpiStagesHint.textContent = 'Бутонът DPI на мишката сменя тези нива. Празно поле = нивото е изключено. ' +
+      (canSwitch ? '„Включи“ сменя нивото веднага. ' : '') +
       (layout.defaultIndexByte !== null
         ? 'Кръгчето отбелязва нивото по подразбиране.'
         : 'Кръгчето избира нивото за „Приложи веднага“ (нивото по подразбиране се определя от мишката).');
@@ -749,7 +774,9 @@ const LogitechButtons = (() => {
         <input type="radio" name="dpi-default" value="${slot}" />
         <span>Ниво ${slot + 1}</span>
         <input type="number" class="field__select" data-dpi-stage="${slot}" placeholder="изключено" />
+        <button type="button" class="panel-btn" data-device-action="activate-stage" data-stage="${slot}">Включи</button>
       `;
+      row.querySelector('[data-device-action]').hidden = !canSwitch;
       const input = row.querySelector('[data-dpi-stage]');
       input.min = dpiInput.min;
       input.max = dpiInput.max;
@@ -758,15 +785,51 @@ const LogitechButtons = (() => {
       row.querySelector('[type="radio"]').checked = slot === selected;
       return row;
     }));
+    markActiveStage();
   };
 
   const selectedStage = () => Number(dpiStages.querySelector('[name="dpi-default"]:checked')?.value ?? 0);
 
+  // В режим „профил от паметта“ DPI отчитането (0x2202) не показва вярно нивото на G309,
+  // затова там се чете текущото ниво (0xB0) и стойността му от профила
   const showCurrentDpi = async () => {
+    if (usesOnboardStages()) {
+      try {
+        const index = await mouse.readCurrentDpiIndex();
+        const stages = storedStages();
+        if (index <= 4 && !isUnusedDpi(stages[index])) {
+          currentStage = index;
+          dpiCurrent.dataset.dpi = stages[index];
+          dpiCurrent.textContent = `ниво ${index + 1} · ${stages[index]} DPI`;
+          markActiveStage();
+          return stages[index];
+        }
+      } catch (error) {
+        diagnostics.dpiIndexError = error.message;
+      }
+    }
+
     const { dpi } = await mouse.readDpi();
+    currentStage = null;
     dpiCurrent.dataset.dpi = dpi;
     dpiCurrent.textContent = `${dpi} DPI`;
+    markActiveStage();
     return dpi;
+  };
+
+  // Сменя текущото ниво веднага, както бутонът DPI на мишката (ползва записаната в мишката стойност)
+  const activateStage = async (event) => {
+    const slot = Number(event.target.closest('[data-stage]').dataset.stage);
+    const stored = storedStages()[slot];
+    if (isUnusedDpi(stored)) throw new Error(`Ниво ${slot + 1} е изключено в мишката. Първо запиши DPI нивата.`);
+
+    await mouse.setCurrentDpiIndex(slot);
+    await showCurrentDpi();
+
+    const input = dpiStages.querySelector(`[data-dpi-stage="${slot}"]`);
+    const edited = input.value !== '' && Number(input.value) !== stored;
+    setLog(`Мишката е на ниво ${slot + 1} (${stored} DPI).` +
+      (edited ? ' Промените в полетата важат след „Запиши DPI нивата в мишката“.' : ''));
   };
 
   // Чете профилите от паметта. Ако потребителски профил няма, работи с копие на фабричния.
@@ -869,6 +932,7 @@ const LogitechButtons = (() => {
     disconnectButton.hidden = false;
     renderDevice();
     renderDpi();
+    if (dpiCaps) await showCurrentDpi().catch(() => {});
     setLog('Мишката е свързана.');
   };
 
@@ -987,17 +1051,22 @@ const LogitechButtons = (() => {
     await mouse.setCurrentProfile(sector).catch((error) => {
       diagnostics.setCurrentProfileError = error.message;
     });
-    if (writeDpi) await mouse.setDpi(stages[chosenStage], dpiCaps).catch(() => {});
+    // Мишката минава на отбелязаното ниво веднага
+    if (writeDpi) {
+      await mouse.setCurrentDpiIndex(chosenStage).catch((error) => {
+        diagnostics.setDpiIndexError = error.message;
+      });
+    }
     await loadOnboard();
-    const actualDpi = dpiCaps ? await showCurrentDpi() : null;
     renderDevice();
     renderDpi();
+    const actualDpi = dpiCaps ? await showCurrentDpi() : null;
 
-    // Проверка дали мишката наистина ползва новото ниво по подразбиране
-    const expectedDpi = writeDpi && layout.dpi.defaultIndexByte !== null ? stages[chosenStage] : null;
-    diagnostics.afterWrite = { sector, expectedDpi, actualDpi };
-    if (expectedDpi !== null && actualDpi !== expectedDpi) {
-      setLog(`Профилът е записан, но мишката още отчита ${actualDpi} DPI вместо ${expectedDpi}. ` +
+    // Проверка по текущото ниво; ако то не може да се прочете, DPI отчитането не е надеждно и не се проверява
+    const expectedDpi = writeDpi ? stages[chosenStage] : null;
+    diagnostics.afterWrite = { sector, expectedDpi, actualDpi, currentStage };
+    if (expectedDpi !== null && currentStage !== null && currentStage !== chosenStage) {
+      setLog(`Профилът е записан, но мишката е на ниво ${currentStage + 1} вместо ${chosenStage + 1}. ` +
         'Изключи и включи мишката от копчето отдолу, за да зареди новите нива, и свържи пак.', true);
       return;
     }
@@ -1013,12 +1082,12 @@ const LogitechButtons = (() => {
     }
   };
 
-  const run = (action) => async () => {
+  const run = (action) => async (...args) => {
     if (busy) return;
     busy = true;
     panel.classList.add('is-busy');
     try {
-      await action();
+      await action(...args);
     } catch (error) {
       console.error(error, error.cause);
       setLog(error.message || String(error), true);
@@ -1047,6 +1116,7 @@ const LogitechButtons = (() => {
     }),
     disconnect: run(disconnect),
     'apply-dpi': run(applyDpi),
+    'activate-stage': run(activateStage),
     write: run(() => writeProfile()),
     'write-dpi': run(() => writeProfile({ buttons: 'keep' })),
     factory: run(() => writeProfile({ buttons: 'factory', dpi: false }))
@@ -1054,8 +1124,13 @@ const LogitechButtons = (() => {
 
   panel.addEventListener('click', (event) => {
     const action = event.target.closest('[data-device-action]')?.dataset.deviceAction;
-    if (action) actions[action]();
+    if (action) actions[action](event);
   });
+
+  // Докато панелът е отворен, текущото ниво се обновява – видимо е и когато се натисне бутонът DPI на мишката
+  setInterval(() => {
+    if (mouse && !busy && !panel.hidden && usesOnboardStages()) showCurrentDpi().catch(() => {});
+  }, 2000);
 
   // Планът се обновява, когато се смени профилът или се отвори секцията
   device.addEventListener('profilechange', renderDevice);
