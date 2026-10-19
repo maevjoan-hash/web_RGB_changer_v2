@@ -241,8 +241,15 @@
     updateManualState();
     clearTimeout(timers[key]);
     timers[key] = setTimeout(() => {
-      apply(changes).catch((error) => setLog(`Камерата не прие „${control.label}“: ${error.message}`, true));
+      apply(changes)
+        .then(showSaved)
+        .catch((error) => setLog(`Камерата не прие „${control.label}“: ${error.message}`, true));
     }, 60);
+  };
+
+  // Всяка промяна се пази веднага в профила – съобщението го показва
+  const showSaved = () => {
+    setLog(`✓ Запазено в профил ${camera.active + 1}. Прилага се при всяко пускане на камерата.`);
   };
 
   function onControl(event) {
@@ -414,7 +421,7 @@
       saveStore();
       renderControls();
       await apply(camera.defaults);
-      setLog(`Профил ${camera.active + 1} е върнат към началните настройки на камерата.`);
+      setLog(`✓ Профил ${camera.active + 1} е върнат към началните настройки на камерата и е запазен.`);
     }
   };
   bar.addEventListener('click', async (event) => {
