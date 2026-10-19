@@ -521,13 +521,14 @@ const LogitechButtons = (() => {
   const help = panel.querySelector('#device-help');
   const isLinux = /Linux/i.test(navigator.userAgent) && !/Android/i.test(navigator.userAgent);
 
-  // Същото правило като linux/42-logitech-webhid.rules в проекта
+  // Същото правило като linux/42-logitech-webhid.rules в проекта.
+  // Без heredoc и „&&“, за да работи еднакво в bash, zsh и fish.
   const LINUX_COMMANDS = [
-    "sudo tee /etc/udev/rules.d/42-logitech-webhid.rules > /dev/null << 'EOF'",
-    'SUBSYSTEM=="hidraw", ATTRS{idVendor}=="046d", TAG+="uaccess"',
-    'SUBSYSTEM=="hidraw", KERNELS=="0005:046D:*", TAG+="uaccess"',
-    'EOF',
-    'sudo udevadm control --reload-rules && sudo udevadm trigger'
+    "printf '%s\\n' 'SUBSYSTEM==\"hidraw\", ATTRS{idVendor}==\"046d\", TAG+=\"uaccess\"' " +
+      "'SUBSYSTEM==\"hidraw\", KERNELS==\"0005:046D:*\", TAG+=\"uaccess\"' " +
+      '| sudo tee /etc/udev/rules.d/42-logitech-webhid.rules > /dev/null',
+    'sudo udevadm control --reload-rules',
+    'sudo udevadm trigger'
   ].join('\n');
 
   panel.querySelector('#device-help-commands').textContent = LINUX_COMMANDS;

@@ -3,7 +3,8 @@
 #
 # Инсталиране:
 #   sudo cp 42-logitech-webhid.rules /etc/udev/rules.d/
-#   sudo udevadm control --reload-rules && sudo udevadm trigger
+#   sudo udevadm control --reload-rules
+#   sudo udevadm trigger
 # После изключи и включи мишката (или я свържи отново по Bluetooth).
 #
 # Номерът 42 е нарочно под 73, за да се приложи TAG+="uaccess" преди 73-seat-late.rules.
