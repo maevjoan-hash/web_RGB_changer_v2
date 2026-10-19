@@ -41,59 +41,60 @@
         <div id="device-display-area" class="device-display-area mouse-display-area">
           <div class="mouse-stage">
             <svg class="mouse-svg mouse-svg--gaming" viewBox="0 0 340 440" role="group" aria-label="Геймърска FPS мишка с 9 бутона">
-              <path d="M 170 6 L 170 40" class="mouse-cable" aria-hidden="true" />
-              <path d="M 70 140 L 32 195 L 28 310 L 82 355 Z" class="mouse-thumb-rest" aria-hidden="true" />
-              <path d="M 85 42 L 150 32 L 190 32 L 255 42 L 272 150 L 258 345 L 210 398 L 130 398 L 72 345 L 68 150 Z" class="mouse-shell" aria-hidden="true" />
-              <path d="M 82 340 L 132 390 L 208 390 L 252 340" class="mouse-rgb-strip" aria-hidden="true" />
+              <path d="M 170 6 C 170 16 170 22 170 32" class="mouse-cable" aria-hidden="true" />
+              <path d="M 170 30 C 224 30 262 64 272 122 L 280 198 C 284 250 278 302 262 346 C 246 390 210 414 170 414 C 130 414 102 394 90 362 L 86 334 C 70 334 50 326 38 306 C 28 288 30 266 42 250 L 60 226 C 68 214 72 200 74 182 L 78 122 C 86 64 118 30 170 30 Z" class="mouse-shell" aria-hidden="true" />
+              <path d="M 86 334 C 70 334 50 326 38 306 C 28 288 30 266 42 250 L 60 226 C 66 248 74 276 80 304 Z" class="mouse-thumb-rest" aria-hidden="true" />
+              <path d="M 112 214 L 138 236 M 228 214 L 202 236 M 120 252 L 140 268 M 220 252 L 200 268" class="mouse-accent" aria-hidden="true" />
+              <path d="M 98 344 C 116 382 142 400 170 402 C 198 400 224 382 242 344" class="mouse-rgb-strip" aria-hidden="true" />
 
               <g class="mouse-btn-group" data-btn="Fire" role="button" tabindex="0" aria-pressed="false" aria-label="Бърз Rapid-Fire бутон">
-                <polygon points="72,62 96,46 96,138 70,138" class="mouse-btn mouse-btn--accent" />
-                <text x="83" y="96" class="mouse-btn-label mouse-btn-label--small" aria-hidden="true">Fire</text>
+                <path d="M 104 56 C 92 70 84 92 82 118 L 80 182 C 86 186 92 188 98 188 L 100 122 C 102 96 104 74 104 56 Z" class="mouse-btn mouse-btn--accent" />
+                <text x="91" y="140" class="mouse-btn-label mouse-btn-label--tiny" aria-hidden="true">Fire</text>
               </g>
 
               <g class="mouse-btn-group" data-btn="LMB" role="button" tabindex="0" aria-pressed="false" aria-label="Ляв основен бутон">
-                <polygon points="100,44 156,36 156,172 72,172 72,144 100,144" class="mouse-btn" />
-                <text x="122" y="115" class="mouse-btn-label" aria-hidden="true">LMB</text>
+                <path d="M 112 48 C 128 38 146 33 162 32 L 162 60 L 154 60 L 154 178 L 162 178 L 162 196 C 140 198 120 194 104 190 L 106 122 C 108 94 110 68 112 48 Z" class="mouse-btn" />
+                <text x="130" y="122" class="mouse-btn-label" aria-hidden="true">LMB</text>
               </g>
 
               <g class="mouse-btn-group" data-btn="RMB" role="button" tabindex="0" aria-pressed="false" aria-label="Десен основен бутон">
-                <polygon points="184,36 252,44 266,172 184,172" class="mouse-btn" />
-                <text x="222" y="115" class="mouse-btn-label" aria-hidden="true">RMB</text>
+                <path d="M 178 32 C 222 34 256 66 264 120 L 270 186 C 250 194 214 198 178 196 L 178 178 L 186 178 L 186 60 L 178 60 Z" class="mouse-btn" />
+                <text x="224" y="122" class="mouse-btn-label" aria-hidden="true">RMB</text>
               </g>
 
-              <rect x="152" y="55" width="36" height="190" rx="10" class="mouse-scroll-slot" aria-hidden="true" />
+              <rect x="154" y="60" width="32" height="118" rx="12" class="mouse-scroll-slot" aria-hidden="true" />
 
               <g class="mouse-btn-group" data-btn="Scroll" role="button" tabindex="0" aria-pressed="false" aria-label="Геймърски скрол, среден бутон">
-                <rect x="157" y="64" width="26" height="64" rx="8" class="mouse-btn" />
-                <text x="170" y="96" class="mouse-btn-label mouse-btn-label--small" aria-hidden="true">Mid</text>
+                <rect x="160" y="66" width="20" height="56" rx="9" class="mouse-btn mouse-btn--scroll" />
+                <path d="M 163 76 H 177 M 163 84 H 177 M 163 92 H 177 M 163 100 H 177 M 163 108 H 177" class="mouse-wheel-ribs" aria-hidden="true" />
               </g>
 
               <g class="mouse-btn-group" data-btn="DPI+" role="button" tabindex="0" aria-pressed="false" aria-label="Увеличаване на чувствителността">
-                <rect x="156" y="140" width="28" height="38" rx="5" class="mouse-btn" />
-                <text x="170" y="160" class="mouse-btn-label mouse-btn-label--small" aria-hidden="true">DPI+</text>
+                <rect x="158" y="128" width="24" height="20" rx="5" class="mouse-btn" />
+                <text x="170" y="138" class="mouse-btn-label mouse-btn-label--tiny" aria-hidden="true">DPI+</text>
               </g>
 
               <g class="mouse-btn-group" data-btn="DPI-" role="button" tabindex="0" aria-pressed="false" aria-label="Намаляване на чувствителността">
-                <rect x="156" y="186" width="28" height="38" rx="5" class="mouse-btn" />
-                <text x="170" y="206" class="mouse-btn-label mouse-btn-label--small" aria-hidden="true">DPI-</text>
+                <rect x="158" y="152" width="24" height="20" rx="5" class="mouse-btn" />
+                <text x="170" y="162" class="mouse-btn-label mouse-btn-label--tiny" aria-hidden="true">DPI-</text>
               </g>
 
               <g class="mouse-btn-group" data-btn="M4" role="button" tabindex="0" aria-pressed="false" aria-label="Страничен макро бутон 1">
-                <polygon points="48,162 68,154 68,210 48,210" class="mouse-btn" />
-                <text x="58" y="185" class="mouse-btn-label mouse-btn-label--small" aria-hidden="true">M4</text>
+                <path d="M 66 200 C 72 198 80 198 84 202 L 82 236 C 76 238 68 238 64 234 Z" class="mouse-btn" />
+                <text x="74" y="219" class="mouse-btn-label mouse-btn-label--small" aria-hidden="true">M4</text>
               </g>
 
               <g class="mouse-btn-group" data-btn="M5" role="button" tabindex="0" aria-pressed="false" aria-label="Страничен макро бутон 2">
-                <polygon points="48,218 68,218 68,274 48,266" class="mouse-btn" />
-                <text x="58" y="245" class="mouse-btn-label mouse-btn-label--small" aria-hidden="true">M5</text>
+                <path d="M 62 242 C 68 240 76 240 80 244 L 78 278 C 72 280 64 280 60 276 Z" class="mouse-btn" />
+                <text x="70" y="261" class="mouse-btn-label mouse-btn-label--small" aria-hidden="true">M5</text>
               </g>
 
               <g class="mouse-btn-group" data-btn="Sniper" role="button" tabindex="0" aria-pressed="false" aria-label="Страничен бутон за прицелване и нисък DPI">
-                <polygon points="22,202 44,192 44,248 22,238" class="mouse-btn mouse-btn--accent" />
-                <text x="33" y="220" class="mouse-btn-label mouse-btn-label--tiny" aria-hidden="true">Aim</text>
+                <path d="M 44 250 C 48 246 54 244 58 246 L 56 284 C 52 288 44 286 40 282 Z" class="mouse-btn mouse-btn--accent" />
+                <text x="49" y="266" class="mouse-btn-label mouse-btn-label--tiny" aria-hidden="true">Aim</text>
               </g>
 
-              <polygon points="170,295 190,325 170,345 150,325" class="mouse-gaming-logo" aria-hidden="true" />
+              <polygon points="170,286 188,306 170,326 152,306" class="mouse-gaming-logo" aria-hidden="true" />
             </svg>
           </div>
         </div>
