@@ -1299,3 +1299,185 @@ button.layout-option {
   border-radius: 50%;
   background: var(--choice);
 }
+
+/* --- СЛУШАЛКИ --- */
+.headphones-svg {
+  width: min(100%, 460px);
+  height: auto;
+  overflow: visible;
+}
+
+.hp-band {
+  fill: none;
+  stroke: #3a3644;
+  stroke-width: 16;
+  stroke-linecap: round;
+}
+
+.hp-band-pad {
+  fill: none;
+  stroke: #24212c;
+  stroke-width: 10;
+  stroke-linecap: round;
+}
+
+.hp-slider {
+  stroke: #9a95a8;
+  stroke-width: 5;
+  stroke-linecap: round;
+}
+
+.hp-cup-shell {
+  fill: #2d2a35;
+  stroke: rgba(255, 255, 255, 0.18);
+  stroke-width: 1.5;
+}
+
+.hp-cup-face {
+  fill: #34303e;
+  stroke: rgba(255, 255, 255, 0.08);
+}
+
+.hp-cup-face--touch {
+  fill: #383343;
+}
+
+.hp-mic {
+  fill: #0f0d14;
+}
+
+.hp-button {
+  fill: #4a4556;
+}
+
+.hp-side {
+  fill: rgba(255, 255, 255, 0.35);
+  font-size: 16px;
+  font-weight: bold;
+  text-anchor: middle;
+  dominant-baseline: middle;
+}
+
+.hp-status {
+  fill: #ffffff;
+  font-size: 18px;
+  font-weight: bold;
+  text-anchor: middle;
+}
+
+.hp-status--small {
+  fill: #ffd98a;
+  font-size: 14px;
+}
+
+.hp-waves path {
+  fill: none;
+  stroke-width: 3;
+  stroke-linecap: round;
+  opacity: 0;
+  transition: opacity 0.3s ease, stroke 0.3s ease;
+}
+
+/* Шумопотискане: вълните са сини и избледняват; околен звук: зелени и пулсират към чашките */
+.headphones-svg[data-mode='nc'] .hp-waves path {
+  stroke: #7cc4ff;
+  opacity: 0.25;
+}
+
+.headphones-svg[data-mode='ambient'] .hp-waves path {
+  stroke: #00e676;
+  opacity: 0.8;
+  animation: hp-wave 1.8s ease-in-out infinite;
+}
+
+.headphones-svg[data-mode='ambient'] .hp-waves path:nth-child(even) {
+  animation-delay: 0.4s;
+}
+
+.headphones-svg[data-mode='nc'] .hp-cup-shell {
+  stroke: #7cc4ff;
+}
+
+.headphones-svg[data-mode='ambient'] .hp-cup-shell {
+  stroke: #00e676;
+}
+
+@keyframes hp-wave {
+  50% {
+    opacity: 0.25;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .headphones-svg[data-mode='ambient'] .hp-waves path {
+    animation: none;
+  }
+}
+
+.hp-toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.hp-toggle input {
+  accent-color: #b8d4f0;
+  width: 18px;
+  height: 18px;
+}
+
+.hp-toggle small {
+  display: block;
+  font-weight: normal;
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.hp-eq {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+  align-items: end;
+}
+
+.hp-eq__band {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+}
+
+.hp-eq__band input {
+  writing-mode: vertical-lr;
+  direction: rtl;
+  height: 130px;
+  width: 28px;
+  accent-color: #b8d4f0;
+}
+
+.hp-info {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 6px 14px;
+  font-size: 0.95rem;
+}
+
+.hp-info dt {
+  color: #b8d4f0;
+  font-weight: bold;
+}
+
+.hp-info dd {
+  margin: 0;
+}
+
+.settings-panel.is-disabled .hp-control {
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+.hp-modes {
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+}
