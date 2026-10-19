@@ -191,8 +191,8 @@
   });
 
   // --- МЕНЮ „ВСИЧКИ НАСТРОЙКИ“ ---
-  // Бутонът на менюто показва коя настройка е отворена в момента
-  const panelElements = panels.querySelectorAll('.settings-panel');
+  // Бутонът на менюто показва коя настройка е отворена в момента.
+  // Панелите се търсят при всеки избор, защото други скриптове (bindings.js) добавят свои.
   const settingsMenuButton = settingsMenu.querySelector('[data-settings-menu-btn]');
 
   const selectTab = (tabToSelect) => {
@@ -202,7 +202,7 @@
       if (isSelected) tab.setAttribute('aria-current', 'true');
       else tab.removeAttribute('aria-current');
     });
-    panelElements.forEach((panel) => {
+    panels.querySelectorAll('.settings-panel').forEach((panel) => {
       panel.hidden = panel.dataset.panel !== tabToSelect.dataset.tab;
     });
     if (settingsMenuButton) {
@@ -244,12 +244,16 @@
     render();
   };
 
+  // Докато е отворена секцията „Функции на бутоните“, кликовете избират бутон там (bindings.js)
+  const isBindingsMode = () => device.classList.contains('bindings-mode');
+
   device.addEventListener('click', (event) => {
     const el = event.target.closest('[data-led]');
-    if (el && device.contains(el)) toggleLed(el);
+    if (el && device.contains(el) && !isBindingsMode()) toggleLed(el);
   });
 
   device.addEventListener('keydown', (event) => {
+    if (isBindingsMode()) return;
     const el = event.target.closest('[data-led][role="button"]');
     if (!el || (event.key !== 'Enter' && event.key !== ' ')) return;
     event.preventDefault();
