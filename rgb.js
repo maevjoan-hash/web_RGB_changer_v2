@@ -1,5 +1,6 @@
 // --- RGB ЛОГИКА: цветове, ефекти, яркост, скорост и профили ---
 (() => {
+  const { t } = I18n;
   const device = document.querySelector('.keyboard, .mouse-svg');
   // Подсветката е в лявата колона; ако страницата няма колони, се ползва единственото меню
   const settingsMenu = document.querySelector('[data-column="lighting"]') || document.querySelector('.settings-menu');
@@ -13,23 +14,23 @@
   const storageKey = `rgb-changer:${device.dataset.storageId || location.pathname.split('/').pop()}`;
 
   const PRESET_COLORS = [
-    { color: '#ff1744', name: 'Червен' },
-    { color: '#ff9100', name: 'Оранжев' },
-    { color: '#ffea00', name: 'Жълт' },
-    { color: '#00e676', name: 'Зелен' },
-    { color: '#00e5ff', name: 'Циан' },
-    { color: '#2979ff', name: 'Син' },
-    { color: '#a06bff', name: 'Лилав' },
-    { color: '#ff4081', name: 'Розов' },
-    { color: '#ffffff', name: 'Бял' }
+    { color: '#ff1744', name: t('Червен') },
+    { color: '#ff9100', name: t('Оранжев') },
+    { color: '#ffea00', name: t('Жълт') },
+    { color: '#00e676', name: t('Зелен') },
+    { color: '#00e5ff', name: t('Циан') },
+    { color: '#2979ff', name: t('Син') },
+    { color: '#a06bff', name: t('Лилав') },
+    { color: '#ff4081', name: t('Розов') },
+    { color: '#ffffff', name: t('Бял') }
   ];
 
   const EFFECTS = [
-    { id: 'static', label: 'Статичен', usesColors: true, usesSpeed: false },
-    { id: 'breathing', label: 'Дишане', usesColors: true, usesSpeed: true },
-    { id: 'wave', label: 'Вълна', usesColors: false, usesSpeed: true },
-    { id: 'spectrum', label: 'Дъга', usesColors: false, usesSpeed: true },
-    { id: 'off', label: 'Изключено', usesColors: false, usesSpeed: false }
+    { id: 'static', label: t('Статичен'), usesColors: true, usesSpeed: false },
+    { id: 'breathing', label: t('Дишане'), usesColors: true, usesSpeed: true },
+    { id: 'wave', label: t('Вълна'), usesColors: false, usesSpeed: true },
+    { id: 'spectrum', label: t('Дъга'), usesColors: false, usesSpeed: true },
+    { id: 'off', label: t('Изключено'), usesColors: false, usesSpeed: false }
   ];
 
   const getEffect = (id) => EFFECTS.find((effect) => effect.id === id) || EFFECTS[0];
@@ -122,7 +123,7 @@
         </label>
         <span class="selection-count" id="rgb-selection-count"></span>
       </div>
-      <div class="color-presets" role="group" aria-label="Готови цветове">
+      <div class="color-presets" role="group" aria-label="${t('Готови цветове')}">
         ${PRESET_COLORS.map(
           ({ color, name }) =>
             `<button type="button" class="color-swatch" data-color="${color}" aria-label="${name}" title="${name}"></button>`
@@ -130,15 +131,15 @@
       </div>
       <p class="panel-note" id="rgb-color-note" hidden></p>
       <div class="panel-actions">
-        <button type="button" class="panel-btn" data-action="select-all">Избери всички</button>
-        <button type="button" class="panel-btn" data-action="clear-selection">Изчисти избора</button>
-        <button type="button" class="panel-btn" data-action="reset-colors">Нулирай цветовете</button>
+        <button type="button" class="panel-btn" data-action="select-all">${t('Избери всички')}</button>
+        <button type="button" class="panel-btn" data-action="clear-selection">${t('Изчисти избора')}</button>
+        <button type="button" class="panel-btn" data-action="reset-colors">${t('Нулирай цветовете')}</button>
       </div>
     </div>
 
     <div class="settings-panel" data-panel="2">
       <fieldset class="effect-options">
-        <legend class="visually-hidden">Светлинен ефект</legend>
+        <legend class="visually-hidden">${t('Светлинен ефект')}</legend>
         ${EFFECTS.map(
           ({ id, label }) =>
             `<label class="effect-option"><input type="radio" name="rgb-effect" value="${id}" /><span>${label}</span></label>`
@@ -148,11 +149,11 @@
 
     <div class="settings-panel" data-panel="3">
       <label class="range-field">
-        <span class="range-field__label">Яркост <output id="rgb-brightness-value"></output></span>
+        <span class="range-field__label">${t('Яркост')} <output id="rgb-brightness-value"></output></span>
         <input type="range" id="rgb-brightness" min="10" max="100" step="5" />
       </label>
       <label class="range-field">
-        <span class="range-field__label">Скорост на ефекта <output id="rgb-speed-value"></output></span>
+        <span class="range-field__label">${t('Скорост на ефекта')} <output id="rgb-speed-value"></output></span>
         <input type="range" id="rgb-speed" min="1" max="10" step="1" />
       </label>
     </div>
@@ -163,14 +164,14 @@
   const profileControls = document.createElement('div');
   profileControls.className = 'panel-actions save-bar__row';
   profileControls.innerHTML = `
-    <div class="segmented" role="group" aria-label="Профили">
+    <div class="segmented" role="group" aria-label="${t('Профили')}">
       ${Array.from(
         { length: PROFILE_COUNT },
-        (_, index) => `<button type="button" class="panel-btn profile-btn" data-profile="${index}">Профил ${index + 1}</button>`
+        (_, index) => `<button type="button" class="panel-btn profile-btn" data-profile="${index}">${t('Профил {n}', { n: index + 1 })}</button>`
       ).join('')}
     </div>
-    <button type="button" class="panel-btn icon-btn" data-action="reset-profile" title="Нулирай профила"
-      aria-label="Нулирай профила">↺</button>
+    <button type="button" class="panel-btn icon-btn" data-action="reset-profile" title="${t('Нулирай профила')}"
+      aria-label="${t('Нулирай профила')}">↺</button>
   `;
   profilesBar.append(profileControls);
 
@@ -205,7 +206,7 @@
     });
     const menuButton = column.querySelector('[data-settings-menu-btn]');
     if (menuButton) {
-      menuButton.textContent = `${menuButton.dataset.menuTitle || 'Всички настройки'}: ${tabToSelect.textContent} ▾`;
+      menuButton.textContent = `${menuButton.dataset.menuTitle || t('Всички настройки')}: ${tabToSelect.textContent} ▾`;
     }
   };
 
@@ -394,10 +395,12 @@
     const shownColor = (firstSelected && profile.leds[firstSelected]) || profile.color;
     colorInput.value = shownColor;
     colorValue.textContent = shownColor.toUpperCase();
-    selectionCount.textContent = selected.size > 0 ? `Избрани: ${selected.size}` : 'Избрано: цялото устройство';
+    selectionCount.textContent = selected.size > 0 ? t('Избрани: {count}', { count: selected.size }) : t('Избрано: цялото устройство');
 
     colorNote.hidden = effect.usesColors;
-    colorNote.textContent = `Ефектът „${effect.label}“ не използва избраните цветове. При избор на цвят ще се включи „Статичен“.`;
+    colorNote.textContent = t('Ефектът „{effect}“ не използва избраните цветове. При избор на цвят ще се включи „Статичен“.', {
+      effect: effect.label
+    });
 
     effectInputs.forEach((input) => {
       input.checked = input.value === effect.id;

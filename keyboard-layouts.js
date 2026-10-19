@@ -116,6 +116,7 @@ const parseKeyboardLayout = (rows) => {
 };
 
 (() => {
+  const { t } = I18n;
   const displayArea = document.querySelector('[data-keyboard-display]');
   const layoutOptions = document.querySelector('[data-keyboard-layout-options]');
   if (!displayArea) return;
@@ -160,7 +161,7 @@ const parseKeyboardLayout = (rows) => {
   // Подсказка, когато клавиатурата е по-широка от екрана и трябва да се плъзга
   const scrollHint = document.createElement('p');
   scrollHint.className = 'keyboard-scroll-hint';
-  scrollHint.textContent = '← Плъзни настрани, за да видиш цялата клавиатура →';
+  scrollHint.textContent = t('← Плъзни настрани, за да видиш цялата клавиатура →');
   displayArea.closest('.device-preview').after(scrollHint);
 
   const updateScrollHint = () => {
@@ -168,7 +169,7 @@ const parseKeyboardLayout = (rows) => {
   };
   new ResizeObserver(updateScrollHint).observe(displayArea);
 
-  document.title = `Конфигуратор на клавиатура - ${layout.label}`;
+  document.title = t('Конфигуратор на клавиатура - {layout}', { layout: layout.label });
 
   if (layoutOptions) {
     Object.entries(KEYBOARD_LAYOUTS).forEach(([id, { label }]) => {

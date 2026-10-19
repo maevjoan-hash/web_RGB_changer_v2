@@ -5,6 +5,7 @@
 //
 // Заявка (long report 0x11, 20 байта): [устройство, feature index, функция | software id, параметри…]
 const LogitechHidpp = (() => {
+  const { t } = I18n;
   const VENDOR_ID = 0x046d;
   const LONG_REPORT = 0x11;
   const SHORT_REPORT = 0x10;
@@ -27,13 +28,13 @@ const LogitechHidpp = (() => {
   };
 
   const ERROR_NAMES = {
-    0x02: 'непознат параметър',
-    0x03: 'невалиден аргумент',
-    0x04: 'извън обхвата',
-    0x05: 'хардуерна грешка',
-    0x07: 'невалиден номер на функция',
-    0x08: 'устройството е заето',
-    0x09: 'неподдържано'
+    0x02: t('непознат параметър'),
+    0x03: t('невалиден аргумент'),
+    0x04: t('извън обхвата'),
+    0x05: t('хардуерна грешка'),
+    0x07: t('невалиден номер на функция'),
+    0x08: t('устройството е заето'),
+    0x09: t('неподдържано')
   };
 
   class HidppDevice {
@@ -52,7 +53,7 @@ const LogitechHidpp = (() => {
           await this.hid.open();
         } catch (cause) {
           // Най-често: в Linux няма права за /dev/hidraw*, или друга програма държи устройството
-          const error = new Error('Системата не позволи на браузъра да отвори мишката.');
+          const error = new Error(t('Системата не позволи на браузъра да отвори мишката.'));
           error.code = 'open-failed';
           error.cause = cause;
           throw error;
@@ -79,7 +80,7 @@ const LogitechHidpp = (() => {
         }
         if ((bytes[1] === 0xff || bytes[1] === 0x8f) && bytes[2] === featureIndex && bytes[3] === functionId) {
           const code = bytes[4];
-          const error = new Error(`Устройството върна грешка: ${ERROR_NAMES[code] || `код ${code}`}`);
+          const error = new Error(t('Устройството върна грешка: {reason}', { reason: ERROR_NAMES[code] || t('код {code}', { code }) }));
           error.hidppCode = code;
           reject(error);
           return;
@@ -97,7 +98,7 @@ const LogitechHidpp = (() => {
 
         const timer = setTimeout(() => {
           this.pending = null;
-          reject(new Error('Устройството не отговори навреме.'));
+          reject(new Error(t('Устройството не отговори навреме.')));
         }, timeout);
 
         const finish = (callback) => (value) => {
@@ -128,7 +129,7 @@ const LogitechHidpp = (() => {
           // Няма устройство на този номер – пробваме следващия
         }
       }
-      throw new Error('Не е намерена мишка, която говори HID++ 2.0.');
+      throw new Error(t('Не е намерена мишка, която говори HID++ 2.0.'));
     }
 
     async featureIndex(featureId) {
@@ -145,7 +146,7 @@ const LogitechHidpp = (() => {
 
     async call(featureId, fn, params = []) {
       const index = await this.featureIndex(featureId);
-      if (!index) throw new Error(`Устройството не поддържа функция 0x${featureId.toString(16).padStart(4, '0')}.`);
+      if (!index) throw new Error(t('Устройството не поддържа функция 0x{feature}.', { feature: featureId.toString(16).padStart(4, '0') }));
       return this.request(index, fn, params);
     }
 
@@ -323,10 +324,10 @@ const LogitechHidpp = (() => {
 
   async function requestDevice() {
     if (!navigator.hid) {
-      throw new Error('Браузърът не поддържа WebHID. Използвай Chrome или Edge на компютър.');
+      throw new Error(t('Браузърът не поддържа WebHID. Използвай Chrome или Edge на компютър.'));
     }
     if (!window.isSecureContext) {
-      throw new Error('WebHID работи само през https:// или http://localhost.');
+      throw new Error(t('WebHID работи само през https:// или http://localhost.'));
     }
 
     const devices = await navigator.hid.requestDevice({
@@ -338,7 +339,7 @@ const LogitechHidpp = (() => {
 
     const hid = devices.find(speaksHidpp);
     if (devices.length === 0) return null;
-    if (!hid) throw new Error('Избраното устройство не поддържа HID++ (протокола на Logitech).');
+    if (!hid) throw new Error(t('Избраното устройство не поддържа HID++ (протокола на Logitech).'));
     return openDevice(hid);
   }
 
@@ -367,6 +368,7 @@ const LogitechHidpp = (() => {
 // Всеки бутон е 4 байта: 0x80 тип стойност = „изпрати“ (бутон на мишката, клавиш или медия),
 // 0x90 функция 0xFF данни = вградена функция (DPI, профил…), 0x00–0x2F = макро, 0xFF… = неизползван.
 const LogitechButtons = (() => {
+  const { t } = I18n;
   const MOUSE_BUTTONS = { left: 0x0001, right: 0x0002, middle: 0x0004, back: 0x0008, forward: 0x0010 };
   const FUNCTIONS = { 'dpi-up': 0x03, 'dpi-down': 0x04, sniper: 0x07 };
   const CONSUMER = {
@@ -398,17 +400,19 @@ const LogitechButtons = (() => {
   for (let n = 1; n <= 24; n += 1) KEY_CODES[`F${n}`] = n <= 12 ? 0x39 + n : 0x5b + n;
 
   const KEY_NAMES = Object.fromEntries(Object.entries(KEY_CODES).map(([name, code]) => [code, name]));
-  const MOUSE_NAMES = { 0x0001: 'Ляв клик', 0x0002: 'Десен клик', 0x0004: 'Среден клик', 0x0008: 'Назад', 0x0010: 'Напред' };
+  const MOUSE_NAMES = {
+    0x0001: t('Ляв клик'), 0x0002: t('Десен клик'), 0x0004: t('Среден клик'), 0x0008: t('Назад'), 0x0010: t('Напред')
+  };
   const CONSUMER_NAMES = {
-    0xcd: 'Пусни / пауза', 0xb5: 'Следваща песен', 0xb6: 'Предишна песен', 0xb7: 'Стоп',
-    0xe2: 'Без звук', 0xe9: 'Звук +', 0xea: 'Звук −'
+    0xcd: t('Пусни / пауза'), 0xb5: t('Следваща песен'), 0xb6: t('Предишна песен'), 0xb7: t('Стоп'),
+    0xe2: t('Без звук'), 0xe9: t('Звук +'), 0xea: t('Звук −')
   };
   const FUNCTION_NAMES = {
-    0x00: 'Без действие', 0x01: 'Наклон наляво', 0x02: 'Наклон надясно', 0x03: 'DPI +', 0x04: 'DPI −',
-    0x05: 'Смяна на DPI (кръгово)', 0x06: 'DPI по подразбиране', 0x07: 'Нисък DPI докато е натиснат',
-    0x08: 'Следващ профил', 0x09: 'Предишен профил', 0x0a: 'Смяна на профила', 0x0b: 'G-Shift',
-    0x0c: 'Състояние на батерията', 0x0d: 'Избор на профил', 0x0e: 'Смяна на режима', 0x0f: 'Бутон към компютъра',
-    0x10: 'Скрол надолу', 0x11: 'Скрол нагоре'
+    0x00: t('Без действие'), 0x01: t('Наклон наляво'), 0x02: t('Наклон надясно'), 0x03: 'DPI +', 0x04: 'DPI −',
+    0x05: t('Смяна на DPI (кръгово)'), 0x06: t('DPI по подразбиране'), 0x07: t('Нисък DPI докато е натиснат'),
+    0x08: t('Следващ профил'), 0x09: t('Предишен профил'), 0x0a: t('Смяна на профила'), 0x0b: 'G-Shift',
+    0x0c: t('Състояние на батерията'), 0x0d: t('Избор на профил'), 0x0e: t('Смяна на режима'), 0x0f: t('Бутон към компютъра'),
+    0x10: t('Скрол надолу'), 0x11: t('Скрол нагоре')
   };
 
   const encodeCombo = (combo) => {
@@ -429,20 +433,20 @@ const LogitechButtons = (() => {
     switch (binding.type) {
       case 'combo': {
         const bytes = encodeCombo(binding.value);
-        return bytes || { error: `клавишът „${binding.value}“ не може да се запише в мишката` };
+        return bytes || { error: t('клавишът „{key}“ не може да се запише в мишката', { key: binding.value }) };
       }
       case 'media':
         return [0x80, 0x03, 0x00, CONSUMER[binding.value]];
       case 'mouse':
         if (MOUSE_BUTTONS[binding.value]) return [0x80, 0x01, 0x00, MOUSE_BUTTONS[binding.value]];
         if (FUNCTIONS[binding.value] !== undefined) return [0x90, FUNCTIONS[binding.value], 0xff, 0x00];
-        return { error: 'двоен клик и бърза стрелба изискват макро, което още не се записва в мишката' };
+        return { error: t('двоен клик и бърза стрелба изискват макро, което още не се записва в мишката') };
       case 'disabled':
         return [0x80, 0x00, 0xff, 0xff];
       case 'macro':
-        return { error: 'макросите още не се записват в мишката' };
+        return { error: t('макросите още не се записват в мишката') };
       default:
-        return { error: 'неизвестна функция' };
+        return { error: t('неизвестна функция') };
     }
   };
 
@@ -450,21 +454,21 @@ const LogitechButtons = (() => {
     const [b0, b1, b2, b3] = bytes;
     const value = (b2 << 8) | b3;
 
-    if (b0 === 0xff && b1 === 0xff) return 'Неизползван';
+    if (b0 === 0xff && b1 === 0xff) return t('Неизползван');
     if (b0 === 0x80) {
-      if (b1 === 0x00) return 'Изключен';
+      if (b1 === 0x00) return t('Изключен');
       if (b1 === 0x01) {
-        return MOUSE_NAMES[value] || `Бутон на мишката 0x${value.toString(16)}`;
+        return MOUSE_NAMES[value] || t('Бутон на мишката 0x{code}', { code: value.toString(16) });
       }
       if (b1 === 0x02) {
         const modifiers = Object.entries(MODIFIERS).filter(([, bit]) => b2 & bit).map(([name]) => name);
-        return [...modifiers, ...(b3 ? [KEY_NAMES[b3] || `код 0x${b3.toString(16)}`] : [])].join(' + ');
+        return [...modifiers, ...(b3 ? [KEY_NAMES[b3] || t('код 0x{code}', { code: b3.toString(16) })] : [])].join(' + ');
       }
-      if (b1 === 0x03) return CONSUMER_NAMES[value] || `Медия 0x${value.toString(16)}`;
+      if (b1 === 0x03) return CONSUMER_NAMES[value] || t('Медия 0x{code}', { code: value.toString(16) });
     }
-    if (b0 === 0x90) return FUNCTION_NAMES[b1] || `Функция 0x${b1.toString(16)}`;
-    if (b0 >> 4 <= 0x2) return 'Макро';
-    return `Непознато (${[...bytes].map((byte) => byte.toString(16).padStart(2, '0')).join(' ')})`;
+    if (b0 === 0x90) return FUNCTION_NAMES[b1] || t('Функция 0x{code}', { code: b1.toString(16) });
+    if (b0 >> 4 <= 0x2) return t('Макро');
+    return t('Непознато ({bytes})', { bytes: [...bytes].map((byte) => byte.toString(16).padStart(2, '0')).join(' ') });
   };
 
   return { encode, describe };
@@ -472,6 +476,7 @@ const LogitechButtons = (() => {
 
 // --- ПОМОЩ, КОГАТО СИСТЕМАТА НЕ ДАВА ДОСТЪП ДО УСТРОЙСТВОТО (обща за мишката и клавиатурата) ---
 const LogitechHelp = (() => {
+  const { t } = I18n;
   const isLinux = /Linux/i.test(navigator.userAgent) && !/Android/i.test(navigator.userAgent);
 
   // Същото правило като linux/42-logitech-webhid.rules в проекта.
@@ -484,20 +489,20 @@ const LogitechHelp = (() => {
     'sudo udevadm trigger'
   ].join('\n');
 
+  // deviceName е на български („мишката“, „клавиатурата“) и се превежда тук
   const html = (deviceName) => `
     <div class="device-help" id="device-help" hidden>
       <div data-help-os="linux">
-        <p>В Linux браузърът няма достъп до HID устройствата, докато не му се разреши. Изпълни веднъж в терминала:</p>
+        <p>${t('В Linux браузърът няма достъп до HID устройствата, докато не му се разреши. Изпълни веднъж в терминала:')}</p>
         <pre class="device-help__code"><code id="device-help-commands"></code></pre>
         <div class="panel-actions">
-          <button type="button" class="panel-btn" data-device-action="copy-commands">Копирай командите</button>
+          <button type="button" class="panel-btn" data-device-action="copy-commands">${t('Копирай командите')}</button>
         </div>
-        <p>След това изключи и включи ${deviceName} (или я свържи отново по Bluetooth) и опитай пак.
-          Ако браузърът е инсталиран като Snap или Flatpak, той може да няма достъп до HID устройства изобщо –
-          тогава използвай версията от официалния сайт или пакет (.deb/.rpm).</p>
+        <p>${t('След това изключи и включи {device} (или я свържи отново по Bluetooth) и опитай пак.', { device: t(deviceName) })}
+          ${t('Ако браузърът е инсталиран като Snap или Flatpak, той може да няма достъп до HID устройства изобщо – тогава използвай версията от официалния сайт или пакет (.deb/.rpm).')}</p>
       </div>
       <div data-help-os="other">
-        <p>Затвори Logitech G HUB и другите програми за устройството, рестартирай браузъра и опитай пак.</p>
+        <p>${t('Затвори Logitech G HUB и другите програми за устройството, рестартирай браузъра и опитай пак.')}</p>
       </div>
     </div>
   `;
@@ -514,6 +519,7 @@ const LogitechHelp = (() => {
 
 // --- ПАНЕЛ „ЗАПИС В МИШКАТА“ ---
 (() => {
+  const { t } = I18n;
   const device = document.querySelector('.mouse-svg');
   const tab = document.querySelector('.settings-tab[data-tab="6"]');
   const panels = tab?.closest('.settings-menu')?.querySelector('.settings-panels') || document.querySelector('.settings-panels');
@@ -590,7 +596,9 @@ const LogitechHelp = (() => {
   }
 
   const hex = (bytes) => [...bytes].map((byte) => byte.toString(16).padStart(2, '0')).join(' ');
-  const BUTTON_NAMES = ['Ляв бутон', 'Десен бутон', 'Среден бутон (колелце)', 'Страничен назад', 'Страничен напред', 'DPI бутон'];
+  const BUTTON_NAMES = [
+    t('Ляв бутон'), t('Десен бутон'), t('Среден бутон (колелце)'), t('Страничен назад'), t('Страничен напред'), t('DPI бутон')
+  ];
 
   // Кой бутон от рисунката на сайта на кой бутон в мишката отговаря
   const SITE_TO_DEVICE = { LMB: 0, RMB: 1, Scroll: 2 };
@@ -610,26 +618,26 @@ const LogitechHelp = (() => {
   panel.hidden = !tab.classList.contains('active');
   tab.setAttribute('aria-controls', panel.id);
   panel.innerHTML = `
-    <p class="settings-hint" id="device-empty">Свържи мишката от бутона под нея.</p>
+    <p class="settings-hint" id="device-empty">${t('Свържи мишката от бутона под нея.')}</p>
 
     <div class="device-details" id="device-details" hidden>
       <p class="device-summary" id="device-summary"></p>
 
       <div class="device-block" id="device-dpi-block" hidden>
-        <p class="field__label">DPI (чувствителност) <span id="device-dpi-range"></span> · сега: <span id="device-dpi-current"></span></p>
+        <p class="field__label">${t('DPI (чувствителност)')} <span id="device-dpi-range"></span> · ${t('сега:')} <span id="device-dpi-current"></span></p>
         <p class="settings-hint" id="device-dpi-stages-hint" hidden></p>
         <div class="dpi-stages" id="device-dpi-stages" hidden></div>
         <label class="field" id="device-dpi-single">
-          <span class="field__label">Нов DPI</span>
+          <span class="field__label">${t('Нов DPI')}</span>
           <input type="number" class="field__select" id="device-dpi" />
         </label>
         <div class="panel-actions">
-          <button type="button" class="panel-btn" data-device-action="apply-dpi">Приложи веднага</button>
+          <button type="button" class="panel-btn" data-device-action="apply-dpi">${t('Приложи веднага')}</button>
         </div>
       </div>
 
       <div class="device-block" id="device-buttons-block" hidden>
-        <p class="field__label">Бутоните в мишката сега</p>
+        <p class="field__label">${t('Бутоните в мишката сега')}</p>
         <ul class="binding-list" id="device-buttons"></ul>
         <p class="field__label" id="device-plan-title"></p>
         <ul class="binding-list" id="device-plan"></ul>
@@ -645,18 +653,18 @@ const LogitechHelp = (() => {
   deviceBar.className = 'device-bar';
   deviceBar.innerHTML = `
     <div class="panel-actions save-bar__row">
-      <button type="button" class="panel-btn panel-btn--primary" data-device-action="connect">Свържи мишката</button>
+      <button type="button" class="panel-btn panel-btn--primary" data-device-action="connect">${t('Свържи мишката')}</button>
       <span class="save-bar__group" id="device-write-actions" hidden>
-        <button type="button" class="panel-btn panel-btn--primary" data-device-action="write">Запиши в мишката</button>
+        <button type="button" class="panel-btn panel-btn--primary" data-device-action="write">${t('Запиши в мишката')}</button>
       </span>
-      <button type="button" class="panel-btn panel-btn--primary" data-device-action="write-dpi" id="device-write-dpi" hidden>Запиши DPI нивата</button>
+      <button type="button" class="panel-btn panel-btn--primary" data-device-action="write-dpi" id="device-write-dpi" hidden>${t('Запиши DPI нивата')}</button>
       <details class="action-menu" id="device-menu" hidden>
-        <summary class="panel-btn">Още ▾</summary>
+        <summary class="panel-btn">${t('Още')} ▾</summary>
         <div class="action-menu__list">
-          <button type="button" class="panel-btn" data-device-action="factory" id="device-factory" hidden>Върни фабричните бутони</button>
-          <button type="button" class="panel-btn" data-device-action="copy-diagnostics">Техническа информация</button>
+          <button type="button" class="panel-btn" data-device-action="factory" id="device-factory" hidden>${t('Върни фабричните бутони')}</button>
+          <button type="button" class="panel-btn" data-device-action="copy-diagnostics">${t('Техническа информация')}</button>
           <hr />
-          <button type="button" class="panel-btn panel-btn--danger" data-device-action="disconnect">Прекъсни</button>
+          <button type="button" class="panel-btn panel-btn--danger" data-device-action="disconnect">${t('Прекъсни')}</button>
         </div>
       </details>
     </div>
@@ -705,7 +713,7 @@ const LogitechHelp = (() => {
   const setLog = (message, isError = false) => {
     log.textContent = message;
     log.classList.toggle('device-log--error', isError);
-    events.push(`${new Date().toLocaleTimeString('bg-BG')}${isError ? ' [грешка]' : ''} ${message}`);
+    events.push(`${new Date().toLocaleTimeString(I18n.locale)}${isError ? ' [грешка]' : ''} ${message}`);
     if (events.length > 30) events.shift();
   };
 
@@ -724,7 +732,7 @@ const LogitechHelp = (() => {
     functions.forEach((entry) => {
       const index = deviceButtonFor(entry);
       if (index === undefined || index >= onboard.info.buttons) {
-        if (entry.binding) skipped.push(`${entry.name}: тази мишка няма такъв бутон`);
+        if (entry.binding) skipped.push(t('{name}: тази мишка няма такъв бутон', { name: entry.name }));
         return;
       }
       const encoded = LogitechButtons.encode(entry.binding);
@@ -739,7 +747,9 @@ const LogitechHelp = (() => {
   };
 
   const renderDevice = () => {
-    const modeText = onboard ? ` · режим: ${onboard.mode === MODE_ONBOARD ? 'профил от паметта' : 'управлявана от компютъра'}` : '';
+    const modeText = onboard
+      ? ` · ${t('режим: {mode}', { mode: onboard.mode === MODE_ONBOARD ? t('профил от паметта') : t('управлявана от компютъра') })}`
+      : '';
     summary.textContent = `${deviceText}${modeText}`;
     if (!onboard) return;
 
@@ -752,7 +762,9 @@ const LogitechHelp = (() => {
 
     if (!recognized) {
       buttonsList.replaceChildren(...listItems([
-        `Форматът на профилите в тази мишка (формат ${onboard.info.format}) още не е разпознат, затова бутоните не могат да се четат и записват.`
+        t('Форматът на профилите в тази мишка (формат {format}) още не е разпознат, затова бутоните не могат да се четат и записват.', {
+          format: onboard.info.format
+        })
       ]));
       return;
     }
@@ -760,23 +772,23 @@ const LogitechHelp = (() => {
     buttonsList.replaceChildren(...listItems(
       Array.from({ length: onboard.info.buttons }, (_, index) => {
         const bytes = onboard.profile.slice(buttonsOffset + index * 4, buttonsOffset + index * 4 + 4);
-        return `${BUTTON_NAMES[index] || `Бутон ${index + 1}`}: ${LogitechButtons.describe(bytes)}`;
+        return `${BUTTON_NAMES[index] || t('Бутон {n}', { n: index + 1 })}: ${LogitechButtons.describe(bytes)}`;
       })
     ));
 
     const { plan, skipped } = buildPlan();
-    planTitle.textContent = `Какво ще се запише (Профил ${(window.RgbChanger?.activeProfile?.() ?? 0) + 1} от сайта)`;
+    planTitle.textContent = t('Какво ще се запише (Профил {n} от сайта)', { n: (window.RgbChanger?.activeProfile?.() ?? 0) + 1 });
     planList.replaceChildren(...listItems([
       ...Array.from({ length: onboard.info.buttons }, (_, index) => {
         const entry = plan.get(index);
-        const name = BUTTON_NAMES[index] || `Бутон ${index + 1}`;
+        const name = BUTTON_NAMES[index] || t('Бутон {n}', { n: index + 1 });
         if (!entry || entry.encoded === 'factory') {
           const factory = onboard.factory.slice(buttonsOffset + index * 4, buttonsOffset + index * 4 + 4);
-          return `${name} → ${LogitechButtons.describe(factory)} (фабрично)`;
+          return t('{name} → {action} (фабрично)', { name, action: LogitechButtons.describe(factory) });
         }
         return `${name} → ${entry.description}`;
       }),
-      ...skipped.map((text) => `Пропуснато – ${text}`)
+      ...skipped.map((text) => t('Пропуснато – {reason}', { reason: text }))
     ]));
   };
 
@@ -804,8 +816,8 @@ const LogitechHelp = (() => {
     if (!hasStages) return;
 
     dpiStagesHint.textContent = layout.defaultIndexByte !== null
-      ? 'Празно поле = изключено ниво · кръгче = по подразбиране'
-      : 'Празно поле = изключено ниво';
+      ? t('Празно поле = изключено ниво · кръгче = по подразбиране')
+      : t('Празно поле = изключено ниво');
 
     const source = onboard.userEntry ? onboard.profile : onboard.factory;
     const stages = readDpiStages(source, layout);
@@ -818,9 +830,9 @@ const LogitechHelp = (() => {
       row.className = 'dpi-stage';
       row.innerHTML = `
         <input type="radio" name="dpi-default" value="${slot}" />
-        <span>Ниво ${slot + 1}</span>
-        <input type="number" class="field__select" data-dpi-stage="${slot}" placeholder="изключено" />
-        <button type="button" class="panel-btn" data-device-action="activate-stage" data-stage="${slot}">Включи</button>
+        <span>${t('Ниво {n}', { n: slot + 1 })}</span>
+        <input type="number" class="field__select" data-dpi-stage="${slot}" placeholder="${t('изключено')}" />
+        <button type="button" class="panel-btn" data-device-action="activate-stage" data-stage="${slot}">${t('Включи')}</button>
       `;
       row.querySelector('[data-device-action]').hidden = !canSwitch;
       const input = row.querySelector('[data-dpi-stage]');
@@ -846,7 +858,7 @@ const LogitechHelp = (() => {
         if (index <= 4 && !isUnusedDpi(stages[index])) {
           currentStage = index;
           dpiCurrent.dataset.dpi = stages[index];
-          dpiCurrent.textContent = `ниво ${index + 1} · ${stages[index]} DPI`;
+          dpiCurrent.textContent = t('ниво {n} · {dpi} DPI', { n: index + 1, dpi: stages[index] });
           markActiveStage();
           return stages[index];
         }
@@ -867,15 +879,15 @@ const LogitechHelp = (() => {
   const activateStage = async (event) => {
     const slot = Number(event.target.closest('[data-stage]').dataset.stage);
     const stored = storedStages()[slot];
-    if (isUnusedDpi(stored)) throw new Error(`Ниво ${slot + 1} е изключено в мишката. Първо запиши DPI нивата.`);
+    if (isUnusedDpi(stored)) throw new Error(t('Ниво {n} е изключено в мишката. Първо запиши DPI нивата.', { n: slot + 1 }));
 
     await mouse.setCurrentDpiIndex(slot);
     await showCurrentDpi();
 
     const input = dpiStages.querySelector(`[data-dpi-stage="${slot}"]`);
     const edited = input.value !== '' && Number(input.value) !== stored;
-    setLog(`Мишката е на ниво ${slot + 1} (${stored} DPI).` +
-      (edited ? ' Промените в полетата важат след „Запиши DPI нивата в мишката“.' : ''));
+    setLog(t('Мишката е на ниво {level} ({dpi} DPI).', { level: slot + 1, dpi: stored }) +
+      (edited ? ` ${t('Промените в полетата важат след „Запиши DPI нивата в мишката“.')}` : ''));
   };
 
   // Чете профилите от паметта. Ако потребителски профил няма, работи с копие на фабричния.
@@ -891,7 +903,7 @@ const LogitechHelp = (() => {
 
     const romDirectory = LogitechHidpp.parseDirectory(romSector);
     const userDirectory = LogitechHidpp.parseDirectory(userSector);
-    if (romDirectory.length === 0) throw new Error('Не са намерени фабрични профили в мишката.');
+    if (romDirectory.length === 0) throw new Error(t('Не са намерени фабрични профили в мишката.'));
 
     // Работи се с профила, който мишката ползва в момента, ако е потребителски
     const currentProfile = await mouse.readCurrentProfile().catch(() => null);
@@ -916,13 +928,15 @@ const LogitechHelp = (() => {
     mouse = device;
     help.hidden = true;
 
-    setLog('Чета информацията от мишката…');
-    const name = await mouse.readName().catch(() => 'Logitech мишка');
+    setLog(t('Чета информацията от мишката…'));
+    const name = await mouse.readName().catch(() => t('Logitech мишка'));
     const battery = await mouse.supports(LogitechHidpp.FEATURES.UNIFIED_BATTERY)
       ? await mouse.readBattery().catch(() => null)
       : null;
-    const connection = mouse.index === 0xff ? 'Bluetooth или кабел' : 'безжичен приемник';
-    const batteryText = battery ? ` · батерия ${battery.percent}%${battery.charging ? ' (зарежда)' : ''}` : '';
+    const connection = mouse.index === 0xff ? t('Bluetooth или кабел') : t('безжичен приемник');
+    const batteryText = battery
+      ? ` · ${t('батерия {percent}%', { percent: battery.percent })}${battery.charging ? ` ${t('(зарежда)')}` : ''}`
+      : '';
 
     dpiCaps = null;
     if (await mouse.supports(LogitechHidpp.FEATURES.EXTENDED_DPI)) {
@@ -952,20 +966,20 @@ const LogitechHelp = (() => {
       try {
         await loadOnboard();
         if (onboard.layout.buttons === null) {
-          onboardMessage = `Профилите в паметта са във формат ${onboard.info.format}, който още не е разпознат. ` +
-            'Натисни „Копирай техническа информация“ и я изпрати, за да се добави поддръжка.';
+          onboardMessage = `${t('Профилите в паметта са във формат {format}, който още не е разпознат.', { format: onboard.info.format })} ` +
+            t('Натисни „Копирай техническа информация“ и я изпрати, за да се добави поддръжка.');
         } else if (!onboard.layout.dpi && dpiCaps) {
-          onboardMessage = 'Бутоните ще се записват, но мястото на DPI в профила не е разпознато, затова DPI се прилага само веднага. ' +
-            'Натисни „Копирай техническа информация“ и я изпрати, за да се добави.';
+          onboardMessage = `${t('Бутоните ще се записват, но мястото на DPI в профила не е разпознато, затова DPI се прилага само веднага.')} ` +
+            t('Натисни „Копирай техническа информация“ и я изпрати, за да се добави.');
         }
       } catch (error) {
         console.error(error);
         diagnostics.onboardError = error.message;
         onboard = null;
-        onboardMessage = `Профилите в паметта не могат да се прочетат: ${error.message}`;
+        onboardMessage = t('Профилите в паметта не могат да се прочетат: {error}', { error: error.message });
       }
     } else {
-      onboardMessage = 'Тази мишка не поддържа профили в паметта, затова бутоните не могат да се записват.';
+      onboardMessage = t('Тази мишка не поддържа профили в паметта, затова бутоните не могат да се записват.');
     }
 
     deviceText = `${name} · ${connection}${batteryText}`;
@@ -980,7 +994,7 @@ const LogitechHelp = (() => {
     renderDevice();
     renderDpi();
     if (dpiCaps) await showCurrentDpi().catch(() => {});
-    setLog('Мишката е свързана.');
+    setLog(t('Мишката е свързана.'));
   };
 
   const showDisconnected = () => {
@@ -999,7 +1013,7 @@ const LogitechHelp = (() => {
     mouse = null;
     onboard = null;
     showDisconnected();
-    setLog('Връзката е прекъсната.');
+    setLog(t('Връзката е прекъсната.'));
   };
 
   const nearestDpi = (value) => dpiCaps.values.reduce(
@@ -1011,7 +1025,7 @@ const LogitechHelp = (() => {
   const applyDpi = async () => {
     const hasStages = !dpiStages.hidden;
     const input = hasStages ? dpiStages.querySelector(`[data-dpi-stage="${selectedStage()}"]`) : dpiInput;
-    if (!input.value) throw new Error('Избраното ниво е изключено. Въведи DPI за него.');
+    if (!input.value) throw new Error(t('Избраното ниво е изключено. Въведи DPI за него.'));
 
     const dpi = nearestDpi(Number(input.value));
     input.value = dpi;
@@ -1020,12 +1034,12 @@ const LogitechHelp = (() => {
 
     if (actual !== dpi) {
       setLog(onboard?.mode === MODE_ONBOARD
-        ? 'Мишката е в режим „профил от паметта“ и използва DPI от профила. Натисни „Запиши DPI нивата в мишката“.'
-        : `Мишката не прие ${dpi} DPI (отчита ${actual}).`, true);
+        ? t('Мишката е в режим „профил от паметта“ и използва DPI от профила. Натисни „Запиши DPI нивата в мишката“.')
+        : t('Мишката не прие {dpi} DPI (отчита {actual}).', { dpi, actual }), true);
     } else {
       setLog(hasStages
-        ? `DPI е ${dpi}. За да остане и след рестарт, натисни „Запиши DPI нивата в мишката“.`
-        : `DPI е ${dpi}. Мястото на DPI в профила не е разпознато, затова след рестарт на мишката ще се върне.`);
+        ? t('DPI е {dpi}. За да остане и след рестарт, натисни „Запиши DPI нивата в мишката“.', { dpi })
+        : t('DPI е {dpi}. Мястото на DPI в профила не е разпознато, затова след рестарт на мишката ще се върне.', { dpi }));
     }
   };
 
@@ -1037,7 +1051,7 @@ const LogitechHelp = (() => {
       input.value = dpi;
       return dpi;
     });
-    if (!stages[selectedStage()]) throw new Error('Отбелязаното ниво не може да е изключено.');
+    if (!stages[selectedStage()]) throw new Error(t('Отбелязаното ниво не може да е изключено.'));
     return stages;
   };
 
@@ -1046,7 +1060,7 @@ const LogitechHelp = (() => {
   const writeProfile = async ({ buttons = 'plan', dpi = true } = {}) => {
     const { info, factory, userEntry, layout } = onboard;
     if (buttons !== 'keep' && layout.buttons === null) {
-      throw new Error('Форматът на профила не е разпознат, затова нищо не е записано.');
+      throw new Error(t('Форматът на профила не е разпознат, затова нищо не е записано.'));
     }
 
     const profile = (userEntry ? onboard.profile : factory).slice();
@@ -1085,13 +1099,13 @@ const LogitechHelp = (() => {
     LogitechHidpp.withCrc(profile);
 
     const sector = userEntry ? userEntry.sector : 0x0001;
-    if (sector >= info.sectors) throw new Error('Няма свободен сектор за профила в паметта на мишката.');
+    if (sector >= info.sectors) throw new Error(t('Няма свободен сектор за профила в паметта на мишката.'));
 
-    setLog('Записвам профила в мишката…');
+    setLog(t('Записвам профила в мишката…'));
     await mouse.writeSector(sector, profile);
     const check = await mouse.readSector(sector, info.sectorSize);
     if (!check.every((byte, index) => byte === profile[index])) {
-      throw new Error('Проверката след записа не съвпада. Профилът не е активиран.');
+      throw new Error(t('Проверката след записа не съвпада. Профилът не е активиран.'));
     }
 
     if (!userEntry) {
@@ -1122,19 +1136,19 @@ const LogitechHelp = (() => {
     const expectedDpi = writeDpi ? stages[chosenStage] : null;
     diagnostics.afterWrite = { sector, expectedDpi, actualDpi, currentStage };
     if (expectedDpi !== null && currentStage !== null && currentStage !== chosenStage) {
-      setLog(`Профилът е записан, но мишката е на ниво ${currentStage + 1} вместо ${chosenStage + 1}. ` +
-        'Изключи и включи мишката от копчето отдолу, за да зареди новите нива, и свържи пак.', true);
+      setLog(`${t('Профилът е записан, но мишката е на ниво {current} вместо {chosen}.', { current: currentStage + 1, chosen: chosenStage + 1 })} ` +
+        t('Изключи и включи мишката от копчето отдолу, за да зареди новите нива, и свържи пак.'), true);
       return;
     }
 
     if (buttons === 'factory') {
-      setLog('Фабричните бутони са върнати в мишката.');
+      setLog(t('Фабричните бутони са върнати в мишката.'));
     } else if (buttons === 'keep') {
       setLog(layout.dpi.defaultIndexByte !== null
-        ? `DPI нивата са записани в мишката (по подразбиране: ниво ${chosenStage + 1}).`
-        : 'DPI нивата са записани в мишката. С бутона DPI превключваш между тях.');
+        ? t('DPI нивата са записани в мишката (по подразбиране: ниво {n}).', { n: chosenStage + 1 })
+        : t('DPI нивата са записани в мишката. С бутона DPI превключваш между тях.'));
     } else {
-      setLog(`Записано в мишката.${skipped.length ? ` Пропуснати: ${skipped.length} (виж списъка).` : ''}`);
+      setLog(`${t('Записано в мишката.')}${skipped.length ? ` ${t('Пропуснати: {count} (виж списъка).', { count: skipped.length })}` : ''}`);
     }
   };
 
@@ -1160,7 +1174,7 @@ const LogitechHelp = (() => {
     connect: run(connect),
     'copy-commands': run(async () => {
       await navigator.clipboard.writeText(LogitechHelp.LINUX_COMMANDS);
-      setLog('Командите са копирани. Постави ги в терминала.');
+      setLog(t('Командите са копирани. Постави ги в терминала.'));
     }),
     'copy-diagnostics': run(async () => {
       if (mouse) {
@@ -1170,7 +1184,7 @@ const LogitechHelp = (() => {
       }
       diagnostics.events = events;
       await navigator.clipboard.writeText(JSON.stringify(diagnostics, null, 2));
-      setLog('Техническата информация е копирана. Изпрати я, за да се добави поддръжка за тази мишка.');
+      setLog(t('Техническата информация е копирана. Изпрати я, за да се добави поддръжка за тази мишка.'));
     }),
     disconnect: run(disconnect),
     'apply-dpi': run(applyDpi),
@@ -1201,7 +1215,7 @@ const LogitechHelp = (() => {
       mouse = null;
       onboard = null;
       showDisconnected();
-      setLog('Мишката беше изключена.', true);
+      setLog(t('Мишката беше изключена.'), true);
     }
   });
 })();

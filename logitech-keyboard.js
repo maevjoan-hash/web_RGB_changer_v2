@@ -15,6 +15,7 @@
   const bar = document.querySelector('[data-device-actions]');
   if (!device || !bar || typeof LogitechHidpp === 'undefined') return;
 
+  const { t } = I18n;
   const { FEATURES } = LogitechHidpp;
   const WATCH_MS = 5000;
   const SETTLE_MS = 1500; // след поемане фърмуерът праща фалшива двойка „неактивна/активна“
@@ -48,16 +49,16 @@
   const FN_KEY = 'rgb-changer-g515-fn-zone';
   const DEFAULT_FN_ZONE = 111;
   const FN_CANDIDATES = [
-    { zone: 111, color: '#ff1744', name: 'червено' },
-    { zone: 254, color: '#00e676', name: 'зелено' },
-    { zone: 99, color: '#2979ff', name: 'синьо' },
-    { zone: 97, color: '#ffea00', name: 'жълто' },
-    { zone: 47, color: '#ff40ff', name: 'розово' },
-    { zone: 100, color: '#00e5ff', name: 'циан' },
-    { zone: 101, color: '#ff9100', name: 'оранжево' },
-    { zone: 102, color: '#ffffff', name: 'бяло' },
-    { zone: 98, color: '#7c4dff', name: 'лилаво' },
-    { zone: 103, color: '#8d6e63', name: 'кафяво' }
+    { zone: 111, color: '#ff1744', name: t('червено') },
+    { zone: 254, color: '#00e676', name: t('зелено') },
+    { zone: 99, color: '#2979ff', name: t('синьо') },
+    { zone: 97, color: '#ffea00', name: t('жълто') },
+    { zone: 47, color: '#ff40ff', name: t('розово') },
+    { zone: 100, color: '#00e5ff', name: t('циан') },
+    { zone: 101, color: '#ff9100', name: t('оранжево') },
+    { zone: 102, color: '#ffffff', name: t('бяло') },
+    { zone: 98, color: '#7c4dff', name: t('лилаво') },
+    { zone: 103, color: '#8d6e63', name: t('кафяво') }
   ];
   const readFnZone = () => {
     try {
@@ -80,47 +81,47 @@
   const IDLE_CHOICES = [15, 30, 60, 120, 300, 600, NEVER];
   const SLEEP_CHOICES = [60, 300, 600, 900, 1800, 3600, NEVER];
   const timerLabel = (seconds) => {
-    if (seconds === NEVER) return 'никога';
+    if (seconds === NEVER) return t('никога');
     if (seconds < 60) return `${seconds} s`;
-    return seconds % 3600 === 0 ? `${seconds / 3600} ч` : `${Math.round(seconds / 60)} мин`;
+    return seconds % 3600 === 0 ? t('{n} ч', { n: seconds / 3600 }) : t('{n} мин', { n: Math.round(seconds / 60) });
   };
   const timerOptions = (choices) => choices.map((seconds) => `<option value="${seconds}">${timerLabel(seconds)}</option>`).join('');
 
   bar.innerHTML = `
     <div class="device-bar">
       <div class="panel-actions save-bar__row">
-        <button type="button" class="panel-btn panel-btn--primary" data-device-action="connect">Свържи клавиатурата</button>
+        <button type="button" class="panel-btn panel-btn--primary" data-device-action="connect">${t('Свържи клавиатурата')}</button>
         <span class="save-bar__group" data-connected hidden>
-          <label class="live-toggle"><input type="checkbox" id="kb-live" checked /> На живо</label>
-          <button type="button" class="panel-btn" data-device-action="apply">Приложи</button>
-          <button type="button" class="panel-btn panel-btn--primary" data-device-action="save">Запиши в клавиатурата</button>
+          <label class="live-toggle"><input type="checkbox" id="kb-live" checked /> ${t('На живо')}</label>
+          <button type="button" class="panel-btn" data-device-action="apply">${t('Приложи')}</button>
+          <button type="button" class="panel-btn panel-btn--primary" data-device-action="save">${t('Запиши в клавиатурата')}</button>
           <details class="action-menu">
-            <summary class="panel-btn">Още ▾</summary>
+            <summary class="panel-btn">${t('Още ▾')}</summary>
             <div class="action-menu__list">
-              <button type="button" class="panel-btn" data-device-action="release">Върни подсветката от паметта</button>
-              <button type="button" class="panel-btn" data-device-action="find-fn">Намери Fn</button>
-              <button type="button" class="panel-btn" data-device-action="copy-diagnostics">Техническа информация</button>
+              <button type="button" class="panel-btn" data-device-action="release">${t('Върни подсветката от паметта')}</button>
+              <button type="button" class="panel-btn" data-device-action="find-fn">${t('Намери Fn')}</button>
+              <button type="button" class="panel-btn" data-device-action="copy-diagnostics">${t('Техническа информация')}</button>
               <hr />
-              <button type="button" class="panel-btn panel-btn--danger" data-device-action="disconnect">Прекъсни</button>
+              <button type="button" class="panel-btn panel-btn--danger" data-device-action="disconnect">${t('Прекъсни')}</button>
             </div>
           </details>
         </span>
       </div>
       <div class="save-bar__row fn-finder" data-fn-finder hidden>
-        <span>Какъв цвят свети Fn?</span>
+        <span>${t('Какъв цвят свети Fn?')}</span>
         ${FN_CANDIDATES.map((candidate) => `<button type="button" class="panel-btn fn-choice" data-fn-zone="${candidate.zone}"
           style="--choice: ${candidate.color}">${candidate.name}</button>`).join('')}
-        <button type="button" class="panel-btn" data-fn-zone="0">В нито един цвят</button>
+        <button type="button" class="panel-btn" data-fn-zone="0">${t('В нито един цвят')}</button>
       </div>
       <div class="save-bar__row fn-finder" data-fn-search hidden>
         <span id="fn-search-question"></span>
-        <button type="button" class="panel-btn panel-btn--primary" data-fn-answer="yes">Да</button>
-        <button type="button" class="panel-btn" data-fn-answer="no">Не</button>
-        <button type="button" class="panel-btn" data-fn-answer="cancel">Откажи</button>
+        <button type="button" class="panel-btn panel-btn--primary" data-fn-answer="yes">${t('Да')}</button>
+        <button type="button" class="panel-btn" data-fn-answer="no">${t('Не')}</button>
+        <button type="button" class="panel-btn" data-fn-answer="cancel">${t('Откажи')}</button>
       </div>
       <p class="device-summary" id="kb-summary" hidden></p>
       <p class="device-log" id="device-log" role="status"></p>
-      ${LogitechHelp.html('клавиатурата')}
+      ${LogitechHelp.html(t('клавиатурата'))}
     </div>
   `;
   LogitechHelp.setup(bar);
@@ -131,11 +132,11 @@
   timersRow.hidden = true;
   timersRow.innerHTML = `
     <label class="field">
-      <span class="field__label">Затъмняване след</span>
+      <span class="field__label">${t('Затъмняване след')}</span>
       <select class="field__select" id="kb-idle">${timerOptions(IDLE_CHOICES)}</select>
     </label>
     <label class="field">
-      <span class="field__label">Изключване след</span>
+      <span class="field__label">${t('Изключване след')}</span>
       <select class="field__select" id="kb-sleep">${timerOptions(SLEEP_CHOICES)}</select>
     </label>
   `;
@@ -175,7 +176,7 @@
   const setLog = (message, isError = false) => {
     log.textContent = message;
     log.classList.toggle('device-log--error', isError);
-    events.push(`${new Date().toLocaleTimeString('bg-BG')}${isError ? ' [грешка]' : ''} ${message}`);
+    events.push(`${new Date().toLocaleTimeString(I18n.locale)}${isError ? ` ${t('[грешка]')}` : ''} ${message}`);
     if (events.length > 30) events.shift();
   };
 
@@ -325,7 +326,7 @@
     if (!lighting) return;
 
     const effectId = EFFECT_IDS[lighting.effect].find((id) => effectIndexes.has(id));
-    if (effectId === undefined) throw new Error('Клавиатурата не поддържа този ефект.');
+    if (effectId === undefined) throw new Error(t('Клавиатурата не поддържа този ефект.'));
 
     if (!claimed) await claim();
     wantControl = true;
@@ -364,9 +365,14 @@
     timers = { idle, sleep };
     diagnostics.timers = timers;
     showTimers();
-    const describe = (seconds, action) => (seconds === NEVER ? `без ${action}` : `${action} след ${timerLabel(seconds)}`);
-    setLog(`${describe(idle, 'затъмняване')}, ${describe(sleep, 'изключване')}. `.replace(/^./, (c) => c.toUpperCase()) +
-      '„Запиши в клавиатурата“ ги пази и след рестарт.');
+    const values = { idle: timerLabel(idle), sleep: timerLabel(sleep) };
+    let summaryText;
+    if (idle === NEVER) {
+      summaryText = sleep === NEVER ? t('Без затъмняване, без изключване.') : t('Без затъмняване, изключване след {sleep}.', values);
+    } else {
+      summaryText = sleep === NEVER ? t('Затъмняване след {idle}, без изключване.', values) : t('Затъмняване след {idle}, изключване след {sleep}.', values);
+    }
+    setLog(`${summaryText} ${t('„Запиши в клавиатурата“ ги пази и след рестарт.')}`);
   };
 
   // --- НЕАКТИВНОСТ: докато сайтът държи подсветката, затъмнява и изключва вместо фърмуера ---
@@ -435,7 +441,7 @@
         }
         if (!claimed) {
           await applyLighting();
-          if (returned) setLog('Клавиатурата се беше върнала към подсветката от паметта си – сайтът я пое отново.');
+          if (returned) setLog(t('Клавиатурата се беше върнала към подсветката от паметта си – сайтът я пое отново.'));
         }
       } catch {
         // Клавиатурата спи или е извън обхват – опитва се пак при следващата проверка
@@ -503,12 +509,12 @@
   };
 
   const pmSave = async (address, data, checksum) => {
-    if (address !== PM.USER_PROFILE && address !== PM.USER_DIR) throw new Error('Отказан запис извън потребителския профил.');
+    if (address !== PM.USER_PROFILE && address !== PM.USER_DIR) throw new Error(t('Отказан запис извън потребителския профил.'));
     await pmCall(0x2, [data.length >> 8, data.length & 0xff]);
     for (let offset = 0; offset < data.length; offset += 16) await pmCall(0x3, data.slice(offset, offset + 16));
-    if (!sameBytes(await pmBuffer(data.length), data)) throw new Error('Проверката на буфера не мина – паметта не е променена.');
+    if (!sameBytes(await pmBuffer(data.length), data)) throw new Error(t('Проверката на буфера не мина – паметта не е променена.'));
     await pmCall(0x7, [address >> 8, address & 0xff, data.length >> 8, data.length & 0xff, ...be32(checksum)]);
-    if (!sameBytes(await pmRead(address, data.length), data)) throw new Error('Записаното в паметта се различава от изпратеното.');
+    if (!sameBytes(await pmRead(address, data.length), data)) throw new Error(t('Записаното в паметта се различава от изпратеното.'));
   };
 
   const validProfile = (profile) => profile?.length === PM.PROFILE_SIZE && profile[0] === 0x01 && profile[1] === 0x01;
@@ -526,14 +532,14 @@
     diagnostics.profileFiles = Object.fromEntries(Object.entries(files).map(([name, bytes]) => [name, hex(bytes)]));
 
     if (!validProfile(files.factoryProfile) || !validDir(files.factoryDir)) {
-      throw new Error('Паметта на клавиатурата има непознат формат – не е променена.');
+      throw new Error(t('Паметта на клавиатурата има непознат формат – не е променена.'));
     }
     if (!files.userProfile !== !files.userDir) {
-      throw new Error('Потребителският профил в паметта е записан наполовина – не е променен.');
+      throw new Error(t('Потребителският профил в паметта е записан наполовина – не е променен.'));
     }
     if (files.userProfile && (!validProfile(files.userProfile) || !validDir(files.userDir) ||
       files.userDir[14] !== PM.USER_PROFILE || crc32(files.userProfile) !== readBe32(files.userDir, 10))) {
-      throw new Error('Потребителският профил не съвпада с описанието си в паметта – не е променен.');
+      throw new Error(t('Потребителският профил не съвпада с описанието си в паметта – не е променен.'));
     }
     return files;
   };
@@ -560,26 +566,31 @@
 
   const saveToKeyboard = async () => {
     if (!(await keyboard.supports(FEATURES.PROFILE_MANAGEMENT))) {
-      throw new Error('Тази клавиатура няма памет за подсветка (0x8101).');
+      throw new Error(t('Тази клавиатура няма памет за подсветка (0x8101).'));
     }
     if (!/G515/i.test(diagnostics.name || '')) {
-      throw new Error('Записът в паметта е проверен само с G515 – за тази клавиатура е изключен.');
+      throw new Error(t('Записът в паметта е проверен само с G515 – за тази клавиатура е изключен.'));
     }
     const lighting = window.RgbChanger.getLighting();
     const effectId = EFFECT_IDS[lighting.effect].find((id) => effectIndexes.has(id));
-    if (effectId === undefined) throw new Error('Клавиатурата не поддържа този ефект.');
+    if (effectId === undefined) throw new Error(t('Клавиатурата не поддържа този ефект.'));
 
     // Всяка стъпка с отговора на клавиатурата отива в „Техническа информация“
     const trace = [];
     diagnostics.saveTrace = trace;
     const step = (label, reply) => trace.push(reply ? `${label}: ${hex(reply)}` : label);
-    step(`${diagnostics.name}, устройство 0x${keyboard.index.toString(16)}, ефект ${lighting.effect} ${lighting.color}`);
+    step(t('{name}, устройство 0x{index}, ефект {effect} {color}', {
+      name: diagnostics.name,
+      index: keyboard.index.toString(16),
+      effect: lighting.effect,
+      color: lighting.color
+    }));
     step('0x8101 getInfo', await pmCall(0x0).catch((error) => [error.message]));
 
-    setLog('Чета паметта на клавиатурата…');
+    setLog(t('Чета паметта на клавиатурата…'));
     const files = await readProfileFiles();
     keepBackup(files);
-    step(files.userProfile ? 'има потребителски профил' : 'няма потребителски профил (ще се използва фабричният)');
+    step(files.userProfile ? t('има потребителски профил') : t('няма потребителски профил (ще се използва фабричният)'));
 
     // Новият профил е копие на досегашния (или фабричния) с нови записи 1 и 3; флаг 00 = използвай тях
     const profile = [...(files.userProfile || files.factoryProfile)];
@@ -596,42 +607,43 @@
     dir[14] = PM.USER_PROFILE;
     dir.splice(0, 4, ...be32(crc32(dir.slice(4))));
 
-    setLog('Записвам в паметта на клавиатурата…');
+    setLog(t('Записвам в паметта на клавиатурата…'));
     diagnostics.savedProfile = hex(profile);
     if (!sameBytes(profile, files.userProfile)) {
       await pmSave(PM.USER_PROFILE, profile, profileCrc);
-      step('профилът е записан и проверен');
+      step(t('профилът е записан и проверен'));
     } else {
-      step('профилът е същият – не е записван');
+      step(t('профилът е същият – не е записван'));
     }
     if (!sameBytes(dir, files.userDir)) {
       await pmSave(PM.USER_DIR, dir, readBe32(dir, 0));
-      step('директорията е записана и проверена');
+      step(t('директорията е записана и проверена'));
     } else {
-      step('директорията е същата – не е записвана');
+      step(t('директорията е същата – не е записвана'));
     }
 
     // Връща подсветката на клавиатурата и я кара да зареди новия профил веднага
     await dropControl();
-    step('режим преди активиране', await pmCall(0x6, [0x00]));
+    step(t('режим преди активиране'), await pmCall(0x6, [0x00]));
     step('onboard (fn6 0b)', await pmCall(0x6, [0x0b]));
-    step('активиране (fn9)', await pmCall(0x9, [0x81, 0x01, 0x01, 0x00, 0x01, 0x00, 0x63, ...be32(profileCrc)]));
+    step(t('активиране (fn9)'), await pmCall(0x9, [0x81, 0x01, 0x01, 0x00, 0x01, 0x00, 0x63, ...be32(profileCrc)]));
     const mode = await pmCall(0x6, [0x00]);
-    step('режим след активиране', mode);
+    step(t('режим след активиране'), mode);
     if (!(mode[0] & 1) || mode[1] !== 0x00 || mode[2] !== 0x01) {
-      throw new Error(`Профилът е записан, но клавиатурата не потвърди зареждането му (${hex(mode.slice(0, 3))}).`);
+      throw new Error(t('Профилът е записан, но клавиатурата не потвърди зареждането му ({reply}).', { reply: hex(mode.slice(0, 3)) }));
     }
     if (hasBrightness) await send(FEATURES.BRIGHTNESS, 0x20, [0x00, lighting.brightness]).catch(() => {});
 
-    step('паметта е потвърдена');
+    step(t('паметта е потвърдена'));
 
     // Паметта пази само основния цвят – докато сайтът е отворен, той показва отново и цветовете по клавиши
     if (hasPerKeyColors(lighting)) {
       await applyLighting();
-      setLog(`Записан е основният цвят (${lighting.color}) – клавиатурата го показва, когато сайтът е затворен. ` +
-        'Цветовете по клавиши паметта ѝ не пази, затова ги показва сайтът, докато е отворен.');
+      setLog(t('Записан е основният цвят ({color}) – клавиатурата го показва, когато сайтът е затворен. Цветовете по клавиши паметта ѝ не пази, затова ги показва сайтът, докато е отворен.', {
+        color: lighting.color
+      }));
     } else {
-      setLog('Подсветката е записана в клавиатурата и остава и без сайта.');
+      setLog(t('Подсветката е записана в клавиатурата и остава и без сайта.'));
     }
   };
 
@@ -657,7 +669,7 @@
   // Всичко угасва, а кандидатите за Fn светват всеки в свой цвят
   const findFn = async () => {
     const candidates = FN_CANDIDATES.filter(({ zone }) => !zoneBitmap.length || hasZone(zoneBitmap, zone));
-    if (!hasPerKey || !effectIndexes.has(0x01)) throw new Error('Клавиатурата няма цвят по клавиши.');
+    if (!hasPerKey || !effectIndexes.has(0x01)) throw new Error(t('Клавиатурата няма цвят по клавиши.'));
     if (!claimed) await claim();
     wantControl = true;
     findingFn = true;
@@ -671,7 +683,7 @@
       button.hidden = !candidates.some(({ zone }) => zone === Number(button.dataset.fnZone));
     });
     fnFinder.hidden = false;
-    setLog('Клавиатурата е угаснала, освен няколко зони в различни цветове. Натисни цвета, в който свети Fn.');
+    setLog(t('Клавиатурата е угаснала, освен няколко зони в различни цветове. Натисни цвета, в който свети Fn.'));
   };
 
   // --- ПЪЛНО ТЪРСЕНЕ НА Fn ПО ПОЛОВИНИ ---
@@ -710,15 +722,15 @@
     if (searchZones.length === 1) {
       confirming = true;
       await paintSearch(searchZones);
-      fnQuestion.textContent = `Последна проверка (зона ${searchZones[0]}): свети ли Fn в зелено?`;
+      fnQuestion.textContent = t('Последна проверка (зона {zone}): свети ли Fn в зелено?', { zone: searchZones[0] });
     } else {
       confirming = false;
       await paintSearch(searchZones.slice(0, Math.ceil(searchZones.length / 2)));
       const steps = Math.ceil(Math.log2(searchZones.length));
-      fnQuestion.textContent = `Свети ли Fn в зелено? (остават около ${steps} въпроса)`;
+      fnQuestion.textContent = t('Свети ли Fn в зелено? (остават около {steps} въпроса)', { steps });
     }
     fnSearch.hidden = false;
-    setLog('Гледай само клавиша Fn – другите зелени клавиши нямат значение.');
+    setLog(t('Гледай само клавиша Fn – другите зелени клавиши нямат значение.'));
   };
 
   const startSearch = async () => {
@@ -734,7 +746,7 @@
     if (answer === 'cancel') {
       cancelFindFn();
       if (keyboard) await applyLighting();
-      setLog('Търсенето на Fn е спряно.');
+      setLog(t('Търсенето на Fn е спряно.'));
       return;
     }
     const lit = answer === 'yes';
@@ -743,9 +755,9 @@
         await chooseFn(searchZones[0]);
       } else {
         cancelFindFn();
-        diagnostics.fnAnswer = 'няма своя зона';
+        diagnostics.fnAnswer = t('няма своя зона');
         if (keyboard) await applyLighting();
-        setLog('Fn не светна в нито една зона – на G515 той няма светлина, която може да се оцветява отделно.');
+        setLog(t('Fn не светна в нито една зона – на G515 той няма светлина, която може да се оцветява отделно.'));
       }
       return;
     }
@@ -776,22 +788,22 @@
     }
     diagnostics.fnZone = fnZone;
     if (keyboard) await applyLighting();
-    setLog(`Fn е намерен (зона ${zone}) – вече се оцветява като останалите клавиши.`);
+    setLog(t('Fn е намерен (зона {zone}) – вече се оцветява като останалите клавиши.', { zone }));
   };
 
   // automatic: при отваряне на страницата или включване – тихо, само за G515
   const connectTo = async (found, automatic) => {
     keyboard = found;
     help.hidden = true;
-    if (!automatic) setLog('Чета информацията от клавиатурата…');
+    if (!automatic) setLog(t('Чета информацията от клавиатурата…'));
 
     const supported = await keyboard.supports(FEATURES.RGB_EFFECTS);
-    const name = supported ? await keyboard.readName().catch(() => 'Logitech клавиатура') : '';
+    const name = supported ? await keyboard.readName().catch(() => t('Logitech клавиатура')) : '';
     if (!supported || (automatic && !/G515/i.test(name))) {
       await keyboard.close();
       keyboard = null;
       if (automatic) return false;
-      throw new Error('Това устройство няма управление на подсветката (0x8071).');
+      throw new Error(t('Това устройство няма управление на подсветката (0x8071).'));
     }
 
     const battery = await keyboard.supports(FEATURES.UNIFIED_BATTERY)
@@ -827,8 +839,13 @@
         .then(hex).catch((error) => error.message);
     }
 
-    const connection = keyboard.index === 0xff ? 'Bluetooth или кабел' : 'безжичен приемник';
-    const batteryText = battery ? ` · батерия ${battery.percent}%${battery.charging ? ' (зарежда)' : ''}` : '';
+    const connection = keyboard.index === 0xff ? t('Bluetooth или кабел') : t('безжичен приемник');
+    let batteryText = '';
+    if (battery) {
+      batteryText = ` · ${battery.charging
+        ? t('батерия {percent}% (зарежда)', { percent: battery.percent })
+        : t('батерия {percent}%', { percent: battery.percent })}`;
+    }
     summary.textContent = `${name} · ${connection}${batteryText}`;
     showTimers();
     showConnected(true);
@@ -838,8 +855,8 @@
     watchTimer = setInterval(watch, WATCH_MS);
     setAuto(true);
     setLog(automatic
-      ? 'Клавиатурата е свързана автоматично и показва подсветката от сайта.'
-      : 'Клавиатурата показва подсветката от сайта.');
+      ? t('Клавиатурата е свързана автоматично и показва подсветката от сайта.')
+      : t('Клавиатурата показва подсветката от сайта.'));
     return true;
   };
 
@@ -879,7 +896,7 @@
     await keyboard?.close();
     forget();
     setAuto(false);
-    setLog('Връзката е прекъсната. Клавиатурата показва подсветката от паметта си.');
+    setLog(t('Връзката е прекъсната. Клавиатурата показва подсветката от паметта си.'));
   };
 
   // --- НА ЖИВО: всяка промяна на подсветката на сайта отива към клавиатурата ---
@@ -925,7 +942,7 @@
       cancelFindFn();
       if (claimed && power !== 'active') await wake();
       else await applyLighting();
-      setLog('Подсветката е приложена.');
+      setLog(t('Подсветката е приложена.'));
     }),
     save: run(async () => {
       cancelFindFn();
@@ -934,13 +951,13 @@
     release: run(async () => {
       cancelFindFn();
       await release();
-      setLog('Клавиатурата показва подсветката от паметта си. „Приложи подсветката“ я поема отново.');
+      setLog(t('Клавиатурата показва подсветката от паметта си. „Приложи подсветката“ я поема отново.'));
     }),
     'find-fn': run(findFn),
     'copy-diagnostics': run(async () => {
       if (keyboard) {
         diagnostics.features = Object.fromEntries(Object.entries(FEATURES).map(
-          ([featureName, id]) => [featureName, keyboard.featureIndexes.get(id) ?? 'не е проверена']
+          ([featureName, id]) => [featureName, keyboard.featureIndexes.get(id) ?? t('не е проверена')]
         ));
       }
       diagnostics.power = power;
@@ -951,11 +968,11 @@
         diagnostics.backup = null;
       }
       await navigator.clipboard.writeText(JSON.stringify(diagnostics, null, 2));
-      setLog('Техническата информация е копирана.');
+      setLog(t('Техническата информация е копирана.'));
     }),
     'copy-commands': run(async () => {
       await navigator.clipboard.writeText(LogitechHelp.LINUX_COMMANDS);
-      setLog('Командите са копирани. Постави ги в терминала.');
+      setLog(t('Командите са копирани. Постави ги в терминала.'));
     }),
     disconnect: run(disconnect)
   };
@@ -980,7 +997,7 @@
   navigator.hid?.addEventListener('disconnect', (event) => {
     if (keyboard && event.device === keyboard.hid) {
       forget();
-      setLog('Клавиатурата беше изключена. Сайтът ще се свърже отново, щом я включиш.', true);
+      setLog(t('Клавиатурата беше изключена. Сайтът ще се свърже отново, щом я включиш.'), true);
     }
   });
 
