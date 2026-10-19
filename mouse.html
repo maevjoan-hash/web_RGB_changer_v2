@@ -93,13 +93,17 @@
         </div>
       </section>
 
-      <section class="settings-menu" aria-label="Меню за настройки">
-        <p class="settings-menu__title">Меню за всички настройки</p>
-        <div class="settings-tabs" role="tablist">
-          <button type="button" class="settings-tab" data-tab="1">Цвят</button>
-          <button type="button" class="settings-tab" data-tab="2">Ефекти</button>
-          <button type="button" class="settings-tab" data-tab="3">Яркост и скорост</button>
-          <button type="button" class="settings-tab" data-tab="4">Профили</button>
+      <section class="settings-menu" aria-label="Всички настройки">
+        <div class="layout-switcher">
+          <button type="button" class="connected-devices-btn layout-switcher__btn" data-settings-menu-btn>
+            Всички настройки ▾
+          </button>
+          <div id="settings-options" class="layout-options">
+            <button type="button" class="layout-option settings-tab" data-tab="1">Цвят</button>
+            <button type="button" class="layout-option settings-tab" data-tab="2">Ефекти</button>
+            <button type="button" class="layout-option settings-tab" data-tab="3">Яркост и скорост</button>
+            <button type="button" class="layout-option settings-tab" data-tab="4">Профили</button>
+          </div>
         </div>
       </section>
     </main>

@@ -94,6 +94,11 @@ layoutSwitchers.forEach((switcher) => {
     setOpen(!switcher.classList.contains('is-open'));
   });
 
+  // Изборът на опция затваря менюто (за линковете страницата така или иначе се сменя)
+  options.addEventListener('click', (event) => {
+    if (event.target.closest('.layout-option')) setOpen(false);
+  });
+
   document.addEventListener('click', (event) => {
     if (!switcher.contains(event.target)) setOpen(false);
   });

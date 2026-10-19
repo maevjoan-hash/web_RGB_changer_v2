@@ -190,39 +190,36 @@
     swatch.style.setProperty('--swatch', swatch.dataset.color);
   });
 
-  // --- ТАБОВЕ ---
+  // --- МЕНЮ „ВСИЧКИ НАСТРОЙКИ“ ---
+  // Бутонът на менюто показва коя настройка е отворена в момента
   const panelElements = panels.querySelectorAll('.settings-panel');
+  const settingsMenuButton = settingsMenu.querySelector('[data-settings-menu-btn]');
 
-  const selectTab = (tabToSelect, moveFocus = false) => {
+  const selectTab = (tabToSelect) => {
     settingsTabs.forEach((tab) => {
       const isSelected = tab === tabToSelect;
-      tab.setAttribute('aria-selected', String(isSelected));
-      tab.tabIndex = isSelected ? 0 : -1;
+      tab.classList.toggle('active', isSelected);
+      if (isSelected) tab.setAttribute('aria-current', 'true');
+      else tab.removeAttribute('aria-current');
     });
     panelElements.forEach((panel) => {
       panel.hidden = panel.dataset.panel !== tabToSelect.dataset.tab;
     });
-    if (moveFocus) tabToSelect.focus();
+    if (settingsMenuButton) {
+      settingsMenuButton.textContent = `Всички настройки: ${tabToSelect.textContent} ▾`;
+    }
   };
 
-  settingsTabs.forEach((tab, index) => {
+  settingsTabs.forEach((tab) => {
     const panel = panels.querySelector(`[data-panel="${tab.dataset.tab}"]`);
-    tab.id = `settings-tab-${tab.dataset.tab}`;
-    tab.setAttribute('role', 'tab');
     if (panel) {
       panel.id = `settings-panel-${tab.dataset.tab}`;
-      panel.setAttribute('role', 'tabpanel');
-      panel.setAttribute('aria-labelledby', tab.id);
+      panel.setAttribute('role', 'region');
+      panel.setAttribute('aria-label', tab.textContent);
       tab.setAttribute('aria-controls', panel.id);
     }
 
     tab.addEventListener('click', () => selectTab(tab));
-    tab.addEventListener('keydown', (event) => {
-      const step = { ArrowRight: 1, ArrowLeft: -1 }[event.key];
-      if (!step) return;
-      event.preventDefault();
-      selectTab(settingsTabs[(index + step + settingsTabs.length) % settingsTabs.length], true);
-    });
   });
 
   selectTab(settingsTabs[0]);

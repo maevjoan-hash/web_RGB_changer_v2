@@ -156,10 +156,12 @@ body {
   flex-direction: column;
   width: 100%;
   padding: 6px;
-  background: #2a2e35;
+  background: rgba(30, 18, 52, 0.97);
   border: 1px solid rgba(255, 255, 255, 0.25);
   border-radius: 8px;
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 
 .layout-switcher.is-open .layout-options {
@@ -348,44 +350,14 @@ body {
   gap: 10px;
 }
 
-.settings-menu__title {
-  font-size: 0.95rem;
-  color: white;
-  font-weight: bold;
-}
-
-.settings-tabs {
-  display: flex;
-  flex-direction: row;
-  flex-wrap: wrap;
-  justify-content: center;
-  row-gap: 4px;
-}
-
-.settings-tab {
-  min-width: 44px;
-  height: 28px;
-  padding: 0 12px;
-  background: #ffffff;
-  border: 2px solid #000000;
-  margin-left: -2px;
-  font-size: 0.9rem;
-  font-weight: bold;
-  white-space: nowrap;
+/* Опциите в менютата могат да са и бутони (менюто „Всички настройки“) */
+button.layout-option {
+  width: 100%;
+  background: none;
+  border: none;
+  font: inherit;
+  text-align: left;
   cursor: pointer;
-}
-
-.settings-tab:first-child {
-  margin-left: 0;
-}
-
-.settings-tab:hover,
-.settings-tab:focus-visible {
-  background: #f3f3f3;
-}
-
-.settings-tab[aria-selected='true'] {
-  background: #b8d4f0;
 }
 
 .mouse-display-area {
@@ -732,7 +704,6 @@ body {
 /* --- ПАНЕЛИ С НАСТРОЙКИ --- */
 .settings-panels {
   width: 100%;
-  max-width: 780px;
 }
 
 .settings-panel {
