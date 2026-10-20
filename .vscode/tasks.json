@@ -1,0 +1,23 @@
+{
+    // Пуска сайта на http://localhost:8080 с вградения в Windows PowerShell (виж windows/server.ps1).
+    // Използва се от конфигурациите в launch.json, така че F5 само отваря сайта.
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "RGB Changer: сървър",
+            "type": "process",
+            "command": "powershell",
+            "args": ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "${workspaceFolder}\\windows\\server.ps1", "-NoBrowser"],
+            "isBackground": true,
+            "problemMatcher": {
+                "owner": "rgb-changer",
+                "pattern": { "regexp": "^__never__$" },
+                "background": {
+                    "activeBegins": true,
+                    "beginsPattern": "^RGB Changer",
+                    "endsPattern": "http://localhost:\\d+/"
+                }
+            }
+        }
+    ]
+}

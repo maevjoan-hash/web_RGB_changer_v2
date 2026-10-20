@@ -491,6 +491,7 @@ class SonyHeadphones {
   };
 
   const connect = async () => {
+    if (window.SiteEnv?.isFile) throw new Error(SiteEnv.fileMessage());
     if (!navigator.serial) {
       help.hidden = false;
       throw new Error(t('Браузърът не поддържа Web Serial. Използвай Chrome или Edge на компютър.'));
@@ -523,11 +524,11 @@ class SonyHeadphones {
   // При отваряне на страницата – тихо към слушалки, за които браузърът вече има разрешение
   const autoConnect = async () => {
     try {
-      if (!navigator.serial || localStorage.getItem(AUTO_KEY) !== 'on') return;
+      if (!navigator.serial || window.SiteEnv?.isFile || localStorage.getItem(AUTO_KEY) !== 'on') return;
     } catch {
       return;
     }
-    const ports = await navigator.serial.getPorts();
+    const ports = await navigator.serial.getPorts().catch(() => []);
     const port = ports.find((candidate) => SERVICES.includes(candidate.getInfo().bluetoothServiceClassId));
     if (!port) return;
     try {
