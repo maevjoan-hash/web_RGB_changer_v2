@@ -101,6 +101,7 @@
             <div class="action-menu__list">
               <button type="button" class="panel-btn" data-device-action="release">${t('Върни подсветката от паметта')}</button>
               <button type="button" class="panel-btn" data-device-action="find-fn">${t('Намери Fn')}</button>
+              <button type="button" class="panel-btn" data-device-action="read-memory">${t('Прочети паметта')}</button>
               <button type="button" class="panel-btn" data-device-action="copy-diagnostics">${t('Техническа информация')}</button>
               <hr />
               <button type="button" class="panel-btn panel-btn--danger" data-device-action="disconnect">${t('Прекъсни')}</button>
@@ -573,6 +574,60 @@
       throw error;
     }
     return pmBuffer(size);
+  };
+
+  // --- ЧЕТЕНЕ НА ЦЯЛАТА ПАМЕТ (само четене) ---
+  // Търси файлове извън известните 0x0000/0x0008/0x0100/0x0101 – напр. записите на G HUB за цветове по клавиши,
+  // чиито адреси не са описани никъде. fn8 само зарежда файл в буфера на клавиатурата и fnC го чете; запис няма.
+  // Адресът е [дял, място]; пробват се дялове 0x00–0x0F и места 0x00–0x1F.
+  const MEMORY_PARTITIONS = 0x10;
+  const MEMORY_SLOTS = 0x20;
+  const MEMORY_READ = 0x80; // размерът на буфера според getInfo (00 80)
+
+  const readMemoryMap = async () => {
+    if (!(await keyboard.supports(FEATURES.PROFILE_MANAGEMENT))) {
+      throw new Error(t('Тази клавиатура няма памет за подсветка (0x8101).'));
+    }
+    const report = {
+      name: diagnostics.name,
+      deviceIndex: keyboard.index,
+      info: hex(await pmCall(0x0).catch(() => [])),
+      mode: hex((await pmCall(0x6, [0x00])).slice(0, 3)),
+      files: {},
+      errors: {}
+    };
+    const total = MEMORY_PARTITIONS * MEMORY_SLOTS;
+    for (let partition = 0; partition < MEMORY_PARTITIONS; partition += 1) {
+      for (let slot = 0; slot < MEMORY_SLOTS; slot += 1) {
+        const done = partition * MEMORY_SLOTS + slot;
+        if (done % 16 === 0) setLog(t('Чета паметта… {done} от {total}', { done, total }));
+        const address = `0x${((partition << 8) | slot).toString(16).padStart(4, '0')}`;
+        try {
+          await pmCall(0x8, [partition, slot, 0x00, 0x10]);
+          const file = { head: hex(await pmBuffer(0x10)) };
+          // Файлът съществува – опитва и по-голяма дължина, за да се види повече от съдържанието
+          try {
+            await pmCall(0x8, [partition, slot, 0x00, MEMORY_READ]);
+            file.data = hex(await pmBuffer(MEMORY_READ));
+          } catch (error) {
+            file.longRead = error.hidppCode ?? error.message;
+          }
+          report.files[address] = file;
+        } catch (error) {
+          const code = error.hidppCode ?? error.message;
+          (report.errors[code] ||= []).push(address);
+        }
+      }
+    }
+    // Грешка 0x04 („няма файл“) е очакваната за празните адреси – съкращава се до брой
+    Object.keys(report.errors).forEach((code) => {
+      if (report.errors[code].length > 8) report.errors[code] = `${report.errors[code].length} ${t('адреса')}`;
+    });
+    diagnostics.memory = report;
+    const found = Object.keys(report.files);
+    setLog(t('Паметта е прочетена: намерени файлове {files}. Натисни „Техническа информация“ и ми изпрати текста.', {
+      files: found.join(', ') || t('няма')
+    }));
   };
 
   const pmSave = async (address, data, checksum) => {
@@ -1058,6 +1113,7 @@
       setLog(t('Клавиатурата показва подсветката от паметта си. „Приложи“ я поема отново.'));
     }),
     'find-fn': run(findFn),
+    'read-memory': run(readMemoryMap),
     'copy-diagnostics': run(async () => {
       if (keyboard) {
         diagnostics.features = Object.fromEntries(Object.entries(FEATURES).map(
