@@ -166,7 +166,7 @@ I18n.add({
   "Клавиатурата е угаснала, освен няколко зони в различни цветове. Натисни цвета, в който свети Fn.": "The keyboard is dark except for a few zones in different colours. Click the colour Fn is lit in.",
   "Клавиатурата не поддържа този ефект.": "The keyboard does not support this effect.",
   "Клавиатурата няма цвят по клавиши.": "The keyboard has no per-key colour.",
-  "Клавиатурата показва подсветката от паметта си. „Приложи подсветката“ я поема отново.": "The keyboard shows the lighting from its memory. “Apply” takes it over again.",
+  "Клавиатурата показва подсветката от паметта си. „Приложи“ я поема отново.": "The keyboard shows the lighting from its memory. “Apply” takes it over again.",
   "Клавиатурата показва подсветката от сайта.": "The keyboard shows the lighting from the site.",
   "Клавиатурата се беше върнала към подсветката от паметта си – сайтът я пое отново.": "The keyboard had gone back to the lighting in its memory – the site has taken it over again.",
   "Клавиш или комбинация": "Key or combination",
@@ -327,7 +327,7 @@ I18n.add({
   "Свързвам се със слушалките…": "Connecting to the headphones…",
   "Сега прави:": "Currently does:",
   "Син": "Blue",
-  "Системата не позволи на браузъра да отвори мишката.": "The system did not allow the browser to open the mouse.",
+  "Системата не позволи на браузъра да отвори устройството.": "The system did not allow the browser to open the device.",
   "Скорост на ефекта": "Effect speed",
   "Скрол колелце, среден бутон": "Scroll wheel, middle button",
   "Скрол нагоре": "Scroll up",
@@ -437,7 +437,9 @@ I18n.add({
   "невалиден номер на функция": "invalid function number",
   "неизвестна функция": "unknown function",
   "неподдържано": "not supported",
-  "непознат параметър": "unknown parameter",
+  "непозната грешка": "unknown error",
+  "не е позволено": "not allowed",
+  "невалиден индекс на функция": "invalid feature index",
   "ниво {n} · {dpi} DPI": "level {n} · {dpi} DPI",
   "никога": "never",
   "няма": "none",
@@ -462,7 +464,18 @@ I18n.add({
   "„Запиши в клавиатурата“ ги пази и след рестарт.": "“Save to keyboard” keeps them after a restart too.",
   "← Плъзни настрани, за да видиш цялата клавиатура →": "← Swipe sideways to see the whole keyboard →",
   "✓ Запазено в профил {n}. Прилага се при всяко пускане на камерата.": "✓ Saved to profile {n}. Applied every time the camera starts.",
-  "✓ Профил {n} е върнат към началните настройки на камерата и е запазен.": "✓ Profile {n} reset to the camera's default settings and saved."
+  "✓ Профил {n} е върнат към началните настройки на камерата и е запазен.": "✓ Profile {n} reset to the camera's default settings and saved.",
+  "Сайтът е отворен като файл и браузърът не позволява връзка с устройства. Отвори го със start.bat от папката на сайта – без инсталиране.": "The site is open as a file, and the browser does not allow connecting to devices from a file. Open it with start.bat from the site folder – nothing to install.",
+  "Сайтът е отворен като файл и браузърът не позволява връзка с устройства. Отвори го през http://localhost или https://.": "The site is open as a file, and the browser does not allow connecting to devices from a file. Open it through http://localhost or https://.",
+  "Затвори Logitech G HUB, ако е отворен (иконата до часовника → Quit), и опитай пак.": "Close Logitech G HUB if it is running (icon next to the clock → Quit) and try again.",
+  "Ако устройството не е в списъка, свържи го отново: по Bluetooth – премахни го и го сдвои пак от настройките на Windows; с приемник – извади приемника и го постави отново.": "If the device is not in the list, connect it again: over Bluetooth, remove it and pair it again in Windows settings; with a receiver, unplug the receiver and plug it back in.",
+  "Отвори „Динамично осветление“": "Open “Dynamic Lighting”",
+  "Windows Dynamic Lighting (или друга програма) също управлява подсветката. Докато е включен, клавиатурата показва неговия цвят вместо записания в паметта ѝ, а сайтът и Windows се редуват. Изключи го за клавиатурата: Настройки → Персонализиране → Динамично осветление.": "Windows Dynamic Lighting (or another program) is also controlling the lighting. While it is on, the keyboard shows its colour instead of the one saved in its memory, and the site and Windows keep taking turns. Turn it off for the keyboard: Settings → Personalization → Dynamic Lighting.",
+  "Друга програма (например G HUB, OpenRGB или Solaar) също управлява подсветката и тя и сайтът се редуват. Затвори я и свържи клавиатурата отново.": "Another program (for example G HUB, OpenRGB or Solaar) is also controlling the lighting, and it and the site keep taking turns. Close it and connect the keyboard again.",
+  "Друга програма беше поела подсветката – сайтът я пое отново.": "Another program had taken over the lighting – the site took it back.",
+  "управление на захранването (fn6 0f)": "power management (fn6 0f)",
+  "Внимание: докато Windows Dynamic Lighting управлява клавиатурата, тя показва неговия цвят вместо записания.": "Note: while Windows Dynamic Lighting controls the keyboard, it shows Windows' colour instead of the saved one.",
+  "Внимание: докато друга програма управлява подсветката, клавиатурата показва нейния цвят вместо записания.": "Note: while another program controls the lighting, the keyboard shows that program's colour instead of the saved one."
 });
 
 // Статичният текст на страницата (скриптовете след този вече ползват I18n.t)

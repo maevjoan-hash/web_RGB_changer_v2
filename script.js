@@ -72,6 +72,29 @@ if (canvas) {
   drawStars();
 }
 
+// --- ОТВОРЕН КАТО ФАЙЛ ---
+// Браузърът не позволява връзка с устройства (WebHID, Web Serial) от страница, отворена като файл (file://).
+// На Windows start.bat отваря сайта през http://localhost, без да се инсталира нищо (виж windows/server.ps1).
+window.SiteEnv = (() => {
+  const { t } = I18n;
+  const isWindows = /Windows/i.test(navigator.userAgent);
+  return {
+    isWindows,
+    isFile: location.protocol === 'file:',
+    fileMessage: () => (isWindows
+      ? t('Сайтът е отворен като файл и браузърът не позволява връзка с устройства. Отвори го със start.bat от папката на сайта – без инсталиране.')
+      : t('Сайтът е отворен като файл и браузърът не позволява връзка с устройства. Отвори го през http://localhost или https://.'))
+  };
+})();
+
+if (SiteEnv.isFile) {
+  const notice = document.createElement('p');
+  notice.className = 'site-notice';
+  notice.setAttribute('role', 'alert');
+  notice.textContent = SiteEnv.fileMessage();
+  document.querySelector('.app-header')?.after(notice);
+}
+
 // --- ЛОГИКА ЗА БУТОНИТЕ ---
 const connectedDevicesBtn = document.querySelector('#connected-devices-btn');
 const layoutSwitchers = document.querySelectorAll('.layout-switcher');
@@ -126,6 +149,11 @@ if (connectedDevicesBtn) {
   };
 
   connectedDevicesBtn.addEventListener('click', async () => {
+    if (SiteEnv.isFile) {
+      showStatus(SiteEnv.fileMessage(), true);
+      return;
+    }
+
     if (!navigator.hid) {
       showStatus(t('Браузърът не поддържа WebHID. Използвай Chrome или Edge.'), true);
       return;

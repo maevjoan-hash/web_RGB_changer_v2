@@ -27,11 +27,14 @@ const LogitechHidpp = (() => {
     FULL_KEY_CUSTOMIZATION: 0x1b05
   };
 
+  // Кодовете за грешка на HID++ 2.0 (0x05 е „не е позволено“ във функциите за подсветка, напр. без поемане)
   const ERROR_NAMES = {
-    0x02: t('непознат параметър'),
-    0x03: t('невалиден аргумент'),
-    0x04: t('извън обхвата'),
-    0x05: t('хардуерна грешка'),
+    0x01: t('непозната грешка'),
+    0x02: t('невалиден аргумент'),
+    0x03: t('извън обхвата'),
+    0x04: t('хардуерна грешка'),
+    0x05: t('не е позволено'),
+    0x06: t('невалиден индекс на функция'),
     0x07: t('невалиден номер на функция'),
     0x08: t('устройството е заето'),
     0x09: t('неподдържано')
@@ -53,7 +56,7 @@ const LogitechHidpp = (() => {
           await this.hid.open();
         } catch (cause) {
           // Най-често: в Linux няма права за /dev/hidraw*, или друга програма държи устройството
-          const error = new Error(t('Системата не позволи на браузъра да отвори мишката.'));
+          const error = new Error(t('Системата не позволи на браузъра да отвори устройството.'));
           error.code = 'open-failed';
           error.cause = cause;
           throw error;
@@ -323,6 +326,7 @@ const LogitechHidpp = (() => {
   };
 
   async function requestDevice() {
+    if (window.SiteEnv?.isFile) throw new Error(SiteEnv.fileMessage());
     if (!navigator.hid) {
       throw new Error(t('Браузърът не поддържа WebHID. Използвай Chrome или Edge на компютър.'));
     }
@@ -357,7 +361,7 @@ const LogitechHidpp = (() => {
 
   // Устройствата, за които браузърът вече има разрешение – отварят се без въпрос към потребителя
   async function grantedDevices() {
-    if (!navigator.hid || !window.isSecureContext) return [];
+    if (!navigator.hid || !window.isSecureContext || window.SiteEnv?.isFile) return [];
     return (await navigator.hid.getDevices()).filter(speaksHidpp);
   }
 
@@ -501,6 +505,10 @@ const LogitechHelp = (() => {
         <p>${t('След това изключи и включи {device} (или я свържи отново по Bluetooth) и опитай пак.', { device: t(deviceName) })}
           ${t('Ако браузърът е инсталиран като Snap или Flatpak, той може да няма достъп до HID устройства изобщо – тогава използвай версията от официалния сайт или пакет (.deb/.rpm).')}</p>
       </div>
+      <div data-help-os="windows">
+        <p>${t('Затвори Logitech G HUB, ако е отворен (иконата до часовника → Quit), и опитай пак.')}</p>
+        <p>${t('Ако устройството не е в списъка, свържи го отново: по Bluetooth – премахни го и го сдвои пак от настройките на Windows; с приемник – извади приемника и го постави отново.')}</p>
+      </div>
       <div data-help-os="other">
         <p>${t('Затвори Logitech G HUB и другите програми за устройството, рестартирай браузъра и опитай пак.')}</p>
       </div>
@@ -509,8 +517,9 @@ const LogitechHelp = (() => {
 
   const setup = (root) => {
     root.querySelector('#device-help-commands').textContent = LINUX_COMMANDS;
+    const os = isLinux ? 'linux' : (window.SiteEnv?.isWindows ? 'windows' : 'other');
     root.querySelectorAll('[data-help-os]').forEach((block) => {
-      block.hidden = (block.dataset.helpOs === 'linux') !== isLinux;
+      block.hidden = block.dataset.helpOs !== os;
     });
   };
 

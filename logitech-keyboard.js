@@ -22,6 +22,7 @@
   const DIM_PERCENT = 30;
   const NEVER = 0xffff;
   const AUTO_KEY = 'rgb-changer-g515-auto';
+  const CLAIM_KEY = 'rgb-changer-g515-claimed';
   // Позиция на интензитета в параметрите на ефекта (за затъмнения вариант)
   const INTENSITY_AT = { 0x03: 7, 0x04: 8, 0x0a: 6, 0x15: 8, 0x16: 8 };
 
@@ -122,6 +123,10 @@
       </div>
       <p class="device-summary" id="kb-summary" hidden></p>
       <p class="device-log" id="device-log" role="status"></p>
+      <div class="device-notice" data-foreign hidden>
+        <p data-foreign-text></p>
+        <a class="panel-btn" href="ms-settings:personalization-lighting" data-foreign-settings hidden>${t('Отвори „Динамично осветление“')}</a>
+      </div>
       ${LogitechHelp.html(t('клавиатурата'))}
     </div>
   `;
@@ -155,6 +160,9 @@
   const summary = bar.querySelector('#kb-summary');
   const log = bar.querySelector('#device-log');
   const help = bar.querySelector('#device-help');
+  const foreignNotice = bar.querySelector('[data-foreign]');
+  const foreignText = bar.querySelector('[data-foreign-text]');
+  const foreignSettings = bar.querySelector('[data-foreign-settings]');
 
   let keyboard = null;
   let effectIndexes = new Map();
@@ -163,6 +171,8 @@
   let zoneBitmap = [];
   let findingFn = false;
   let claimed = false;
+  let swEvents = 0x04; // събитията, поискани при поемането (0x8071 fn5): 04 при работа, 02 при затъмняване
+  let foreignControl = false; // друга програма (на Windows – Dynamic Lighting) е държала подсветката
   let wantControl = false; // сайтът трябва да държи подсветката (след „Приложи“ или промяна на живо)
   let power = 'active'; // active | dim | off
   let timers = { idle: 60, sleep: 300 };
@@ -213,6 +223,24 @@
     }
   };
 
+  // Белег, че подсветката е поета от сайта. Ако браузърът се затвори, преди клавиатурата да бъде върната,
+  // при следващото свързване тя е още в режим „host“ – с белега това не се бърка с друга програма.
+  const markClaimed = (isClaimed) => {
+    try {
+      if (isClaimed) localStorage.setItem(CLAIM_KEY, '1');
+      else localStorage.removeItem(CLAIM_KEY);
+    } catch {
+      // Без localStorage белегът липсва и предупреждението може да се покаже излишно веднъж
+    }
+  };
+  const wasClaimedBySite = () => {
+    try {
+      return localStorage.getItem(CLAIM_KEY) === '1';
+    } catch {
+      return false;
+    }
+  };
+
   // Клавиатурата отговаря „заето“, докато обработва предишен кадър – тогава се опитва пак
   const send = async (featureId, fn, params = []) => {
     for (let attempt = 1; ; attempt += 1) {
@@ -234,6 +262,8 @@
     if (await keyboard.supports(FEATURES.PROFILE_MANAGEMENT)) await send(FEATURES.PROFILE_MANAGEMENT, 0x60, [0x05]);
     // Сайтът държи клъстерите и захранването (03) и иска събитие при неактивност (04)
     await send(FEATURES.RGB_EFFECTS, 0x50, [0x01, 0x03, 0x04]);
+    swEvents = 0x04;
+    markClaimed(true);
     claimed = true;
     power = 'active';
     clearTimeout(offTimer);
@@ -251,9 +281,16 @@
     await send(FEATURES.RGB_EFFECTS, 0x50, [0x01, 0x00, 0x00]);
   };
 
+  // Към паметта с 0x8101 fn6 [0f]: режим „onboard“ и управление на захранването от фърмуера. С [03]
+  // (както в Solaar/OpenRGB) управлението остава изключено от поемането с [05] и записаните времена за
+  // затъмняване и изключване не работят до рестарт на клавиатурата (проверено на G515).
+  const ONBOARD_WITH_POWER = 0x0f;
   const release = async () => {
     await dropControl();
-    if (await keyboard.supports(FEATURES.PROFILE_MANAGEMENT)) await send(FEATURES.PROFILE_MANAGEMENT, 0x60, [0x03]);
+    if (await keyboard.supports(FEATURES.PROFILE_MANAGEMENT)) {
+      await send(FEATURES.PROFILE_MANAGEMENT, 0x60, [ONBOARD_WITH_POWER]);
+    }
+    markClaimed(false);
   };
 
   // Ефектите в клавиатурата се избират по индекс; индексите се четат по ID на ефекта (0x8071 getInfo)
@@ -381,6 +418,7 @@
     if (!keyboard || !claimed || power !== 'active') return;
     await applyLighting(DIM_PERCENT);
     await send(FEATURES.RGB_EFFECTS, 0x50, [0x01, 0x03, 0x02]); // събитие при следващо натискане
+    swEvents = 0x02;
     power = 'dim';
     clearTimeout(offTimer);
     if (timers.sleep !== NEVER && timers.sleep > timers.idle) {
@@ -410,6 +448,7 @@
       }
     }
     await send(FEATURES.RGB_EFFECTS, 0x50, [0x01, 0x03, 0x04]);
+    swEvents = 0x04;
     settleUntil = performance.now() + SETTLE_MS;
     power = 'active';
     await applyLighting();
@@ -428,21 +467,49 @@
     exclusive(bytes[3] === 0 ? goIdle : wake).catch(showError);
   };
 
-  // На всеки 5 s: ако клавиатурата се е върнала към паметта си (рестарт, дълбок сън), сайтът я поема отново
+  // --- ДРУГА ПРОГРАМА ДЪРЖИ ПОДСВЕТКАТА ---
+  // На Windows това е Dynamic Lighting (услугата Logitech LampArray), иначе G HUB, OpenRGB или Solaar. Познава се
+  // по режима „host“ (0x8101 fn6) и по флаговете на клъстерите (0x8071 fn5 GET връща [00, флагове, събития]).
+  const readControl = async () => ({
+    mode: await send(FEATURES.PROFILE_MANAGEMENT, 0x60, [0x00]).catch(() => null),
+    sw: await send(FEATURES.RGB_EFFECTS, 0x50, [0x00, 0x00, 0x00]).catch(() => null)
+  });
+
+  const showForeign = (isForeign) => {
+    foreignControl = isForeign;
+    foreignNotice.hidden = !isForeign;
+    foreignSettings.hidden = !SiteEnv.isWindows;
+    foreignText.textContent = SiteEnv.isWindows
+      ? t('Windows Dynamic Lighting (или друга програма) също управлява подсветката. Докато е включен, клавиатурата показва неговия цвят вместо записания в паметта ѝ, а сайтът и Windows се редуват. Изключи го за клавиатурата: Настройки → Персонализиране → Динамично осветление.')
+      : t('Друга програма (например G HUB, OpenRGB или Solaar) също управлява подсветката и тя и сайтът се редуват. Затвори я и свържи клавиатурата отново.');
+  };
+
+  // На всеки 5 s: ако клавиатурата се е върнала към паметта си (рестарт, дълбок сън) или друга програма е
+  // поела подсветката, сайтът я поема отново
   const watch = () => {
     if (!keyboard || !wantControl || findingFn) return;
     exclusive(async () => {
       if (!keyboard || !wantControl) return;
       try {
         let returned = false;
+        let taken = false;
         if (claimed && await keyboard.supports(FEATURES.PROFILE_MANAGEMENT)) {
           const mode = await send(FEATURES.PROFILE_MANAGEMENT, 0x60, [0x00]);
           returned = Boolean(mode[0] & 1);
           if (returned) claimed = false;
         }
+        if (claimed) {
+          const sw = await send(FEATURES.RGB_EFFECTS, 0x50, [0x00, 0x00, 0x00]);
+          taken = sw[1] !== 0x03 || sw[2] !== swEvents;
+          if (taken) {
+            claimed = false;
+            showForeign(true);
+          }
+        }
         if (!claimed) {
           await applyLighting();
           if (returned) setLog(t('Клавиатурата се беше върнала към подсветката от паметта си – сайтът я пое отново.'));
+          if (taken) setLog(t('Друга програма беше поела подсветката – сайтът я пое отново.'));
         }
       } catch {
         // Клавиатурата спи или е извън обхват – опитва се пак при следващата проверка
@@ -616,6 +683,24 @@
   // Запис в профила: [ID на ефекта, 10 байта параметри] – същите параметри като в 0x8071
   const effectRecord = (effectId, lighting, percent) => [effectId, ...scaledParams(effectId, lighting, percent)];
 
+  // Само за четене, за „Техническа информация“: кой държи подсветката, ефектите за всички зони наведнъж
+  // (cluster 0xFF; при G515 и 0x0C „Custom Onboard Stored“), двата слота за собствени ефекти с цвят по
+  // клавиши (0x8071 getInfo тип 01: валидност и брой кадри) и потребителската директория в паметта
+  const readOnboardInfo = async () => {
+    const control = await readControl();
+    const info = { mode: hex(control.mode?.slice(0, 3)), swControl: hex(control.sw?.slice(0, 3)), multiClusterEffects: [], slots: [] };
+    const deviceInfo = await send(FEATURES.RGB_EFFECTS, 0x00, [0xff, 0xff, 0x00]);
+    for (let index = 0; index < deviceInfo[7]; index += 1) {
+      const effect = await send(FEATURES.RGB_EFFECTS, 0x00, [0xff, index, 0x00]);
+      info.multiClusterEffects.push(`0x${((effect[2] << 8) | effect[3]).toString(16).padStart(2, '0')}`);
+    }
+    for (let slot = 0; slot < 2; slot += 1) {
+      info.slots.push(hex((await send(FEATURES.RGB_EFFECTS, 0x00, [0xff, 0x00, 0x01, slot, 0x00])).slice(3, 8)));
+    }
+    info.userDirectory = await pmRead(PM.USER_DIR, PM.DIR_SIZE).then(hex).catch((error) => error.message);
+    return info;
+  };
+
   const hasPerKeyColors = (lighting) => lighting.effect === 'static' &&
     Object.entries(lighting.leds).some(([keyId, color]) => zoneOf(keyId) && color !== lighting.color);
 
@@ -682,6 +767,9 @@
     step(t('режим преди активиране'), await pmCall(0x6, [0x00]));
     step('onboard (fn6 0b)', await pmCall(0x6, [0x0b]));
     step(t('активиране (fn9)'), await pmCall(0x9, [0x81, 0x01, 0x01, 0x00, 0x01, 0x00, 0x63, ...be32(profileCrc)]));
+    // И управлението на захранването – иначе записаните времена за затъмняване не работят до рестарт
+    step(t('управление на захранването (fn6 0f)'), await pmCall(0x6, [ONBOARD_WITH_POWER]));
+    markClaimed(false);
     const mode = await pmCall(0x6, [0x00]);
     step(t('режим след активиране'), mode);
     if (!(mode[0] & 1) || mode[1] !== 0x00 || mode[2] !== 0x01) {
@@ -691,14 +779,22 @@
 
     step(t('паметта е потвърдена'));
 
+    // Ако друга програма управлява подсветката (на Windows – Dynamic Lighting), записаното не се вижда, докато тя работи
+    let foreignNote = '';
+    if (foreignControl) {
+      foreignNote = ` ${SiteEnv.isWindows
+        ? t('Внимание: докато Windows Dynamic Lighting управлява клавиатурата, тя показва неговия цвят вместо записания.')
+        : t('Внимание: докато друга програма управлява подсветката, клавиатурата показва нейния цвят вместо записания.')}`;
+    }
+
     // Паметта пази само основния цвят – докато сайтът е отворен, той показва отново и цветовете по клавиши
     if (hasPerKeyColors(lighting)) {
       await applyLighting();
       setLog(t('Записан е основният цвят ({color}) – клавиатурата го показва, когато сайтът е затворен. Цветовете по клавиши паметта ѝ не пази, затова ги показва сайтът, докато е отворен.', {
         color: lighting.color
-      }));
+      }) + foreignNote);
     } else {
-      setLog(t('Подсветката е записана в клавиатурата и остава и без сайта.'));
+      setLog(t('Подсветката е записана в клавиатурата и остава и без сайта.') + foreignNote);
     }
   };
 
@@ -905,6 +1001,13 @@
     showTimers();
     showConnected(true);
 
+    // Преди сайтът да поеме подсветката: държи ли я вече друга програма? Поемането от сайта миналия път
+    // (браузърът е затворен, преди клавиатурата да е върната) се познава по белега и не е предупреждение.
+    const control = await readControl();
+    const heldByOther = Boolean(control.mode && !(control.mode[0] & 1)) || Boolean(control.sw && control.sw[1]);
+    diagnostics.controlAtConnect = { mode: hex(control.mode?.slice(0, 3)), swControl: hex(control.sw?.slice(0, 3)) };
+    showForeign(heldByOther && !wasClaimedBySite());
+
     await applyLighting();
     clearInterval(watchTimer);
     watchTimer = setInterval(watch, WATCH_MS);
@@ -937,6 +1040,7 @@
 
   const forget = () => {
     cancelFindFn();
+    showForeign(false);
     clearInterval(watchTimer);
     clearTimeout(offTimer);
     keyboard = null;
@@ -1006,7 +1110,7 @@
     release: run(async () => {
       cancelFindFn();
       await release();
-      setLog(t('Клавиатурата показва подсветката от паметта си. „Приложи подсветката“ я поема отново.'));
+      setLog(t('Клавиатурата показва подсветката от паметта си. „Приложи“ я поема отново.'));
     }),
     'find-fn': run(findFn),
     'read-memory': run(readMemoryMap),
@@ -1015,7 +1119,9 @@
         diagnostics.features = Object.fromEntries(Object.entries(FEATURES).map(
           ([featureName, id]) => [featureName, keyboard.featureIndexes.get(id) ?? t('не е проверена')]
         ));
+        diagnostics.onboard = await readOnboardInfo().catch((error) => error.message);
       }
+      diagnostics.foreignControl = foreignControl;
       diagnostics.power = power;
       diagnostics.events = events;
       try {
